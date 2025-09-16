@@ -1,125 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bed, Moon, Heart, Ruler, Package, Sparkles, Home } from 'lucide-react';
+import React, { useState } from 'react';
+import Chat from './components/chat';
+import { Bed, Moon, Heart, Ruler, Package, Sparkles, Home } from 'lucide-react';
 
 const BedAdvisorChatbot = () => {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: 'Ciao! 👋 Sono il tuo assistente personale per la scelta del letto perfetto. Posso aiutarti a trovare il letto ideale in base alle tue esigenze di comfort, spazio, stile e budget. Come posso aiutarti oggi?'
-    }
-  ]);
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [threadId, setThreadId] = useState(null);
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // Inizializza il thread al primo caricamento
-  useEffect(() => {
-    const initThread = async () => {
-      try {
-        const response = await fetch('/api/assistants/threads', {
-          method: 'POST'
-        });
-        const data = await response.json();
-        setThreadId(data.threadId);
-      } catch (error) {
-        console.error('Error creating thread:', error);
-      }
-    };
-    initThread();
-  }, []);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!inputValue.trim() || isLoading || !threadId) return;
-
-    const userMessage = inputValue.trim();
-    setInputValue('');
-    
-    // Aggiungi il messaggio dell'utente
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-    setIsLoading(true);
-
-    try {
-      // Invia il messaggio all'API
-      const response = await fetch(`/api/assistants/threads/${threadId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: userMessage,
-        }),
-      });
-
-      const stream = response.body;
-      const reader = stream.getReader();
-      const decoder = new TextDecoder();
-      let assistantMessage = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') break;
-            
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.text) {
-                assistantMessage += parsed.text;
-              }
-            } catch (e) {
-              // Ignora errori di parsing
-            }
-          }
-        }
-      }
-
-      // Aggiungi la risposta completa dell'assistente
-      if (assistantMessage) {
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: assistantMessage 
-        }]);
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Mi dispiace, c\'è stato un errore. Riprova per favore.' 
-      }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleQuickQuestion = async (question) => {
-    setInputValue(question);
-    // Simula un click sul pulsante di invio dopo un breve delay
-    setTimeout(() => {
-      if (inputRef.current) {
-        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-        inputRef.current.closest('div').querySelector('button').click();
-      }
-    }, 100);
-  };
+  const [showQuickQuestions, setShowQuickQuestions] = useState(true);
 
   const quickQuestions = [
     { 
@@ -177,60 +63,24 @@ const BedAdvisorChatbot = () => {
 
       {/* Chat Container */}
       <div className="flex-1 overflow-hidden">
-        <div className="max-w-5xl mx-auto h-full flex flex-col">
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}
-              >
-                <div
-                  className={`max-w-[75%] rounded-2xl px-5 py-4 ${
-                    message.role === 'user'
-                      ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg'
-                      : 'bg-white text-gray-800 shadow-xl border border-gray-100'
-                  }`}
-                >
-                  {message.role === 'assistant' && (
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
-                        <Bed className="w-4 h-4 text-indigo-600" />
-                      </div>
-                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Assistente AI</span>
-                    </div>
-                  )}
-                  <p className="text-[15px] leading-relaxed whitespace-pre-line">{message.content}</p>
-                </div>
-              </div>
-            ))}
-            
-            {isLoading && (
-              <div className="flex justify-start animate-fadeIn">
-                <div className="bg-white rounded-2xl px-5 py-4 shadow-xl border border-gray-100">
-                  <div className="flex items-center gap-3">
-                    <div className="flex gap-1">
-                      <div className="w-2.5 h-2.5 bg-indigo-600 rounded-full animate-bounce"></div>
-                      <div className="w-2.5 h-2.5 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-2.5 h-2.5 bg-pink-600 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                    </div>
-                    <span className="text-sm text-gray-500">Sto pensando...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
+        <div className="max-w-4xl mx-auto h-full flex flex-col">
+          <div className="flex-1 overflow-hidden">
+            <Chat />
           </div>
 
-          {/* Quick Questions - Show only at start */}
-          {messages.length === 1 && !isLoading && (
+          {/* Quick Questions - Mostra solo all'inizio */}
+          {showQuickQuestions && (
             <div className="px-6 py-4 bg-white/50 backdrop-blur-sm">
               <p className="text-sm text-gray-600 font-medium mb-3 text-center">💡 Domande frequenti:</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {quickQuestions.map((q, index) => (
                   <button
                     key={index}
-                    onClick={() => handleQuickQuestion(q.text)}
+                    onClick={() => {
+                      setShowQuickQuestions(false);
+                      // Qui dovresti implementare l'invio automatico della domanda
+                      // Per ora solo nascondiamo le domande rapide
+                    }}
                     className={`flex items-center gap-3 px-4 py-3 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 text-left group hover:scale-[1.02]`}
                   >
                     <div className={`p-2 rounded-lg bg-gradient-to-br ${q.color} text-white group-hover:scale-110 transition-transform`}>
@@ -242,42 +92,6 @@ const BedAdvisorChatbot = () => {
               </div>
             </div>
           )}
-
-          {/* Input Area */}
-          <div className="p-6 bg-white border-t border-gray-100">
-            <div className="max-w-5xl mx-auto" ref={inputRef}>
-              <div className="flex gap-3">
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSubmit(e);
-                      }
-                    }}
-                    placeholder="Chiedimi qualsiasi cosa sui letti..."
-                    className="w-full px-6 py-4 pr-12 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-[15px] transition-all shadow-sm"
-                    disabled={isLoading || !threadId}
-                  />
-                  <Home className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                </div>
-                <button
-                  onClick={handleSubmit}
-                  disabled={isLoading || !inputValue.trim() || !threadId}
-                  className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl font-medium"
-                >
-                  <Send className="w-5 h-5" />
-                  <span className="hidden sm:inline">Invia</span>
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 mt-3 text-center">
-                Premi Invio per inviare • Shift+Invio per andare a capo
-              </p>
-            </div>
-          </div>
         </div>
       </div>
 
