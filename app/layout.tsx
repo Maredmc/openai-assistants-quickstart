@@ -1,8 +1,12 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Montserrat } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const montserrat = Montserrat({ 
+  subsets: ['latin'],
+  display: 'swap',
+  weight: ['300', '400', '500', '600', '700']
+})
 
 export const metadata: Metadata = {
   title: 'Assistente Letti AI - Il tuo consulente per il riposo perfetto',
@@ -17,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="it">
-      <body className={inter.className}>{children}</body>
+      <body className={montserrat.className}>{children}</body>
     </html>
   )
 }
