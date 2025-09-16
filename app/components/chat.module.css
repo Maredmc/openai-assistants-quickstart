@@ -29,13 +29,13 @@
 
 .input:focus {
   outline: none !important;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #79aea3;
+  box-shadow: 0 0 0 3px rgba(121, 174, 163, 0.1);
 }
 
 .button {
   padding: 12px 32px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #79aea3 0%, #5a9d8f 100%);
   color: white;
   border: none;
   font-size: 15px;
@@ -47,7 +47,7 @@
 
 .button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(121, 174, 163, 0.4);
 }
 
 .button:disabled {
@@ -97,7 +97,7 @@
 .userMessage {
   align-self: flex-end;
   color: #fff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #79aea3 0%, #5a9d8f 100%);
   margin-left: auto;
 }
 
@@ -118,7 +118,7 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #79aea3 0%, #5a9d8f 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -155,7 +155,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #9ca3af;
+  background-color: #79aea3;
   animation: bounce 1.4s ease-in-out infinite;
 }
 
@@ -199,7 +199,6 @@
   margin-right: 12px;
 }
 
-/* Welcome Message */
 .welcomeMessage {
   text-align: center;
   padding: 40px 20px;
@@ -253,12 +252,11 @@
 }
 
 .quickQuestion:hover {
-  border-color: #667eea;
+  border-color: #79aea3;
   background-color: #f9fafb;
   transform: translateY(-1px);
 }
 
-/* Scrollbar personalizzata */
 .messages::-webkit-scrollbar {
   width: 6px;
 }

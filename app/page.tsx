@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Chat from './components/chat';
+import Image from 'next/image';
 import styles from './page.module.css';
 
 const BedAdvisorChatbot = () => {
@@ -12,9 +13,13 @@ const BedAdvisorChatbot = () => {
         <div className={styles.headerContent}>
           <div className={styles.headerInner}>
             <div className={styles.logo}>
-              <svg viewBox="0 0 100 100" className={styles.logoIcon}>
-                <path d="M20,30 L50,10 L80,30 L80,70 L50,90 L20,70 Z" fill="white"/>
-              </svg>
+              <Image 
+                src="/logo_nabè.png" 
+                alt="Logo Nabè" 
+                width={28} 
+                height={28}
+                className={styles.logoIcon}
+              />
             </div>
             <div>
               <h1 className={styles.title}>Assistente Letti AI</h1>

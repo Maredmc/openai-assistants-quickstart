@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import styles from "./chat.module.css";
 import { AssistantStream } from "openai/lib/AssistantStream";
 import Markdown from "react-markdown";
@@ -22,9 +23,12 @@ const AssistantMessage = ({ text }: { text: string }) => {
     <div className={styles.assistantMessage}>
       <div className={styles.assistantHeader}>
         <div className={styles.assistantIcon}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 7V17C20 19.2091 18.2091 21 16 21H8C5.79086 21 4 19.2091 4 17V7M20 7L12 12M20 7L12 2L4 7M4 7L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          <Image 
+            src="/logo_nabè.png" 
+            alt="Logo" 
+            width={20} 
+            height={20}
+          />
         </div>
         <span className={styles.assistantLabel}>Assistente</span>
       </div>
@@ -38,9 +42,12 @@ const LoadingMessage = () => {
     <div className={styles.assistantMessage}>
       <div className={styles.assistantHeader}>
         <div className={`${styles.assistantIcon} ${styles.assistantIconThinking}`}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 7V17C20 19.2091 18.2091 21 16 21H8C5.79086 21 4 19.2091 4 17V7M20 7L12 12M20 7L12 2L4 7M4 7L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          <Image 
+            src="/logo_nabè.png" 
+            alt="Logo" 
+            width={20} 
+            height={20}
+          />
         </div>
         <span className={styles.assistantLabel}>Assistente</span>
       </div>
@@ -86,7 +93,7 @@ type ChatProps = {
 };
 
 const Chat = ({
-  functionCallHandler = () => Promise.resolve(""), // default to return empty string
+  functionCallHandler = () => Promise.resolve(""),
 }: ChatProps) => {
   const [userInput, setUserInput] = useState("");
   const [messages, setMessages] = useState([]);
@@ -94,16 +101,15 @@ const Chat = ({
   const [threadId, setThreadId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // automatically scroll to bottom of chat
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+  
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
 
-  // create a new threadID when chat component created
   useEffect(() => {
     const createThread = async () => {
       const res = await fetch(`/api/assistants/threads`, {
@@ -161,14 +167,10 @@ const Chat = ({
     scrollToBottom();
   };
 
-  /* Stream Event Handlers */
-
-  // textCreated - create new assistant message
   const handleTextCreated = () => {
     appendMessage("assistant", "");
   };
 
-  // textDelta - append text to last assistant message
   const handleTextDelta = (delta) => {
     if (delta.value != null) {
       appendToLastMessage(delta.value);
@@ -178,31 +180,26 @@ const Chat = ({
     }
   };
 
-  // imageFileDone - show image in chat
   const handleImageFileDone = (image) => {
     appendToLastMessage(`\n![${image.file_id}](/api/files/${image.file_id})\n`);
   }
 
-  // toolCallCreated - log new tool call
   const toolCallCreated = (toolCall) => {
     if (toolCall.type != "code_interpreter") return;
     appendMessage("code", "");
   };
 
-  // toolCallDelta - log delta and snapshot for the tool call
   const toolCallDelta = (delta, snapshot) => {
     if (delta.type != "code_interpreter") return;
     if (!delta.code_interpreter.input) return;
     appendToLastMessage(delta.code_interpreter.input);
   };
 
-  // handleRequiresAction - handle function call
   const handleRequiresAction = async (
     event: AssistantStreamEvent.ThreadRunRequiresAction
   ) => {
     const runId = event.data.id;
     const toolCalls = event.data.required_action.submit_tool_outputs.tool_calls;
-    // loop over tool calls and call function handler
     const toolCallOutputs = await Promise.all(
       toolCalls.map(async (toolCall) => {
         const result = await functionCallHandler(toolCall);
@@ -213,37 +210,24 @@ const Chat = ({
     submitActionResult(runId, toolCallOutputs);
   };
 
-  // handleRunCompleted - re-enable the input form
   const handleRunCompleted = () => {
     setInputDisabled(false);
     setIsLoading(false);
   };
 
   const handleReadableStream = (stream: AssistantStream) => {
-    // messages
     stream.on("textCreated", handleTextCreated);
     stream.on("textDelta", handleTextDelta);
-
-    // image
     stream.on("imageFileDone", handleImageFileDone);
-
-    // code interpreter
     stream.on("toolCallCreated", toolCallCreated);
     stream.on("toolCallDelta", toolCallDelta);
 
-    // events without helpers yet (e.g. requires_action and run.done)
     stream.on("event", (event) => {
       if (event.event === "thread.run.requires_action")
         handleRequiresAction(event);
       if (event.event === "thread.run.completed") handleRunCompleted();
     });
   };
-
-  /*
-    =======================
-    === Utility Helpers ===
-    =======================
-  */
 
   const appendToLastMessage = (text) => {
     setMessages((prevMessages) => {
@@ -276,13 +260,11 @@ const Chat = ({
       })
       return [...prevMessages.slice(0, -1), updatedLastMessage];
     });
-    
   }
 
   return (
     <div className={styles.chatContainer}>
       <div className={styles.messages}>
-        {/* Messaggio di benvenuto */}
         {messages.length === 0 && (
           <div className={styles.welcomeMessage}>
             <div className={styles.welcomeIcon}>👋</div>
