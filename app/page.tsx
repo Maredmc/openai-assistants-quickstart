@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bed, Moon, Heart, Ruler, Package, Sparkles, Home, Bot } from 'lucide-react';
+import { Send, Bed, Moon, Heart, Ruler, Package, Sparkles, Home as HomeIcon, Bot } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -270,7 +270,7 @@ export default function Home() {
                     className="w-full px-6 py-4 pr-12 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-[15px] transition-all shadow-sm"
                     disabled={isLoading || !threadId}
                   />
-                  <Home className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <HomeIcon className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 </div>
                 <button
                   onClick={() => handleSubmit()}
