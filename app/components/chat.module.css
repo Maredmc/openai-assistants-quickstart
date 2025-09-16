@@ -68,6 +68,7 @@
 .userMessage,
 .assistantMessage,
 .codeMessage {
+  background-color: #faf1e04d;
   margin: 12px 0;
   padding: 16px 20px;
   align-self: flex-start;
@@ -102,9 +103,7 @@
 }
 
 .assistantMessage {
-  background-color: #f3f4f6;
   color: #1f2937;
-  border: 1px solid #e5e7eb;
 }
 
 .assistantHeader {
