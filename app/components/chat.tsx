@@ -266,37 +266,37 @@ const Chat = ({
     <div className={styles.chatContainer}>
       <div className={styles.messages}>
         {messages.length === 0 && (
-          <div className={styles.welcomeMessage}>
-            <div className={styles.welcomeIcon}>👋</div>
-            <h2>Benvenuto!</h2>
-            <p>Sono il tuo assistente personale per la scelta del letto perfetto. Come posso aiutarti oggi?</p>
+  <div className={styles.welcomeMessage}>
+    <div className={styles.welcomeIcon}>🏠</div>
+    <h2>Benvenuto in Nabè Creation!</h2>
+    <p>Sono il tuo consulente specializzato per trovare il letto perfetto per il tuo bambino. Insieme creeremo il rifugio dei sogni ideale!</p>
             <div className={styles.quickQuestions}>
-              <p className={styles.quickQuestionsTitle}>Domande frequenti:</p>
-              <button 
-                onClick={() => setUserInput("Che misura mi consigli per una camera di 15mq?")}
-                className={styles.quickQuestion}
-              >
-                Che misura mi consigli per una camera di 15mq?
-              </button>
-              <button 
-                onClick={() => setUserInput("Qual è il miglior materasso per dormire bene?")}
-                className={styles.quickQuestion}
-              >
-                Qual è il miglior materasso per dormire bene?
-              </button>
-              <button 
-                onClick={() => setUserInput("Letto adatto per chi soffre di mal di schiena?")}
-                className={styles.quickQuestion}
-              >
-                Letto adatto per chi soffre di mal di schiena?
-              </button>
-              <button 
-                onClick={() => setUserInput("Vantaggi dei letti contenitore")}
-                className={styles.quickQuestion}
-              >
-                Vantaggi dei letti contenitore
-              </button>
-            </div>
+  <p className={styles.quickQuestionsTitle}>Iniziamo con queste domande:</p>
+  <button 
+    onClick={() => setUserInput("Ho un bambino di 3 anni, che letto mi consigli?")}
+    className={styles.quickQuestion}
+  >
+    Ho un bambino di 3 anni, che letto mi consigli?
+  </button>
+  <button 
+    onClick={() => setUserInput("Ho due figli di 4 e 7 anni, mi serve un letto a castello?")}
+    className={styles.quickQuestion}
+  >
+    Ho due figli di 4 e 7 anni, mi serve un letto a castello?
+  </button>
+  <button 
+    onClick={() => setUserInput("Mio figlio ha iniziato a camminare, quali sponde mi consigli?")}
+    className={styles.quickQuestion}
+  >
+    Mio figlio ha iniziato a camminare, quali sponde mi consigli?
+  </button>
+  <button 
+    onClick={() => setUserInput("La cameretta è piccola, che dimensioni mi consigli?")}
+    className={styles.quickQuestion}
+  >
+    La cameretta è piccola, che dimensioni mi consigli?
+  </button>
+</div>
           </div>
         )}
         
