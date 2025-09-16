@@ -20,7 +20,35 @@ const UserMessage = ({ text }: { text: string }) => {
 const AssistantMessage = ({ text }: { text: string }) => {
   return (
     <div className={styles.assistantMessage}>
+      <div className={styles.assistantHeader}>
+        <div className={styles.assistantIcon}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 7V17C20 19.2091 18.2091 21 16 21H8C5.79086 21 4 19.2091 4 17V7M20 7L12 12M20 7L12 2L4 7M4 7L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+        <span className={styles.assistantLabel}>Assistente</span>
+      </div>
       <Markdown>{text}</Markdown>
+    </div>
+  );
+};
+
+const LoadingMessage = () => {
+  return (
+    <div className={styles.assistantMessage}>
+      <div className={styles.assistantHeader}>
+        <div className={`${styles.assistantIcon} ${styles.assistantIconThinking}`}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 7V17C20 19.2091 18.2091 21 16 21H8C5.79086 21 4 19.2091 4 17V7M20 7L12 12M20 7L12 2L4 7M4 7L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+        <span className={styles.assistantLabel}>Assistente</span>
+      </div>
+      <div className={styles.thinkingDots}>
+        <div className={styles.dot}></div>
+        <div className={styles.dot}></div>
+        <div className={styles.dot}></div>
+      </div>
     </div>
   );
 };
@@ -64,6 +92,7 @@ const Chat = ({
   const [messages, setMessages] = useState([]);
   const [inputDisabled, setInputDisabled] = useState(false);
   const [threadId, setThreadId] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // automatically scroll to bottom of chat
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -72,7 +101,7 @@ const Chat = ({
   };
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isLoading]);
 
   // create a new threadID when chat component created
   useEffect(() => {
@@ -128,6 +157,7 @@ const Chat = ({
     ]);
     setUserInput("");
     setInputDisabled(true);
+    setIsLoading(true);
     scrollToBottom();
   };
 
@@ -186,6 +216,7 @@ const Chat = ({
   // handleRunCompleted - re-enable the input form
   const handleRunCompleted = () => {
     setInputDisabled(false);
+    setIsLoading(false);
   };
 
   const handleReadableStream = (stream: AssistantStream) => {
@@ -251,9 +282,48 @@ const Chat = ({
   return (
     <div className={styles.chatContainer}>
       <div className={styles.messages}>
+        {/* Messaggio di benvenuto */}
+        {messages.length === 0 && (
+          <div className={styles.welcomeMessage}>
+            <div className={styles.welcomeIcon}>👋</div>
+            <h2>Benvenuto!</h2>
+            <p>Sono il tuo assistente personale per la scelta del letto perfetto. Come posso aiutarti oggi?</p>
+            <div className={styles.quickQuestions}>
+              <p className={styles.quickQuestionsTitle}>Domande frequenti:</p>
+              <button 
+                onClick={() => setUserInput("Che misura mi consigli per una camera di 15mq?")}
+                className={styles.quickQuestion}
+              >
+                Che misura mi consigli per una camera di 15mq?
+              </button>
+              <button 
+                onClick={() => setUserInput("Qual è il miglior materasso per dormire bene?")}
+                className={styles.quickQuestion}
+              >
+                Qual è il miglior materasso per dormire bene?
+              </button>
+              <button 
+                onClick={() => setUserInput("Letto adatto per chi soffre di mal di schiena?")}
+                className={styles.quickQuestion}
+              >
+                Letto adatto per chi soffre di mal di schiena?
+              </button>
+              <button 
+                onClick={() => setUserInput("Vantaggi dei letti contenitore")}
+                className={styles.quickQuestion}
+              >
+                Vantaggi dei letti contenitore
+              </button>
+            </div>
+          </div>
+        )}
+        
         {messages.map((msg, index) => (
           <Message key={index} role={msg.role} text={msg.text} />
         ))}
+        
+        {isLoading && <LoadingMessage />}
+        
         <div ref={messagesEndRef} />
       </div>
       <form
@@ -265,14 +335,14 @@ const Chat = ({
           className={styles.input}
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
-          placeholder="Enter your question"
+          placeholder="Scrivi il tuo messaggio..."
         />
         <button
           type="submit"
           className={styles.button}
           disabled={inputDisabled}
         >
-          Send
+          Invia
         </button>
       </form>
     </div>

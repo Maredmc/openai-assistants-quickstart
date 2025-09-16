@@ -1,47 +1,67 @@
-.main {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background-color: white;
-}
-.title {
-  font-size: 1.5em;
-  margin-bottom: 20px;
-  font-weight: 600;
-}
-
 .container {
   display: flex;
-  flex-direction: row;
-  gap: 20px;
-  max-width: 1200px;
-  width: 100%;
-  padding: 20px;
-  box-sizing: border-box;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #ffffff;
 }
 
-.category {
-  color: black;
+.header {
+  border-bottom: 1px solid #e5e7eb;
+  background-color: white;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.headerContent {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px 24px;
+}
+
+.headerInner {
   display: flex;
-  font-size: 1em;
-  border-radius: 32px;
-  justify-content: center;
   align-items: center;
-  text-align: center;
-  background-color: #efefef;
-  cursor: pointer;
-  max-width: 600px;
-  width: 120px;
-  height: 120px;
-  padding: 20px;
-  transition: background-color 0.3s ease;
+  gap: 16px;
+}
+
+.logo {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+}
+
+.logoIcon {
+  width: 28px;
+  height: 28px;
+  color: white;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 2px 0;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
   font-weight: 500;
 }
 
-.category:hover {
-  background-color: #e3e3eb;
+.chatContainer {
+  flex: 1;
+  overflow: hidden;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
 }
