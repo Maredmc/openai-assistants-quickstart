@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       .join("");
 
     // Invio email
-    const data = await resend.emails.send({
+    const emailResponse = await resend.emails.send({
       from: "noreply@nabecreation.com", // Dovrai verificare questo dominio su Resend
       to: ["hello@nabecreation.com"],
       subject: `🔥 Nuovo contatto dalla chat AI - ${email}`,
@@ -81,8 +81,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: "Richiesta di contatto inviata con successo!",
-      emailId: data.data?.id || data.id || "unknown"
+      message: "Richiesta di contatto inviata con successo!"
     });
 
   } catch (error) {
