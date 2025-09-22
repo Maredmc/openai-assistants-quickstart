@@ -149,12 +149,22 @@ const Chat = ({
   }, []);
 
   const sendMessage = async (text) => {
+    // Aggiungiamo istruzioni di sistema per migliorare le risposte
+    const systemInstructions = `ISTRUZIONI IMPORTANTI:
+- Rispondi in modo CONCISO e DIRETTO
+- Quando consigli prodotti usa ELENCHI PUNTATI con GRASSETTI sui punti principali
+- Massimo 3-4 frasi per spiegazione, poi vai al sodo
+- Usa formato: **Nome Prodotto**: breve descrizione
+- Evita giri di parole, sii pratico e utile
+
+Domanda utente: ${text}`;
+    
     const response = await fetch(
       `/api/assistants/threads/${threadId}/messages`,
       {
         method: "POST",
         body: JSON.stringify({
-          content: text,
+          content: systemInstructions,
         }),
       }
     );
@@ -186,11 +196,19 @@ const Chat = ({
     
     // Controlla se l'utente sta rifiutando di essere contattato
     const refusalKeywords = ['no grazie', 'non voglio', 'non interessato', 'no thanks', 'non ora', 'magari dopo', 'non mi interessa', 'non ho bisogno', 'preferirei di no', 'non adesso'];
+    const contactKeywords = ['contatto', 'contattare', 'preventivo', 'modulo', 'email', 'telefono', 'ricontattare', 'chiamare'];
     const userInputLower = userInput.toLowerCase();
     const hasRefused = refusalKeywords.some(keyword => userInputLower.includes(keyword));
+    const wantsContact = contactKeywords.some(keyword => userInputLower.includes(keyword));
     
     if (hasRefused && !contactDeclined) {
       setShowAlternativeOffer(true);
+    }
+    
+    // Se l'utente chiede esplicitamente di essere contattato, riattiva il sistema
+    if (wantsContact && contactDeclined) {
+      setContactDeclined(false);
+      setShowAlternativeOffer(false);
     }
     
     sendMessage(userInput);
@@ -288,10 +306,15 @@ const Chat = ({
   const handleContactDeclined = () => {
     setContactDeclined(true);
     setShowAlternativeOffer(false);
+    // Dopo 3 messaggi dell'utente, riattiva l'offerta alternativa
+    setTimeout(() => {
+      setShowAlternativeOffer(true);
+    }, 10000); // 10 secondi dopo, o potresti basarti sul conteggio messaggi
   };
 
   const handleShowAlternativeOffer = () => {
     setShowAlternativeOffer(true);
+    setContactDeclined(false); // Reset per permettere il form
   };
 
   // Funzione per convertire i messaggi in formato cronologia chat

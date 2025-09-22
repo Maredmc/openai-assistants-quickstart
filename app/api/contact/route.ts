@@ -51,8 +51,11 @@ export async function POST(request: NextRequest) {
       .join("");
 
     // Invio email
+    console.log('📧 Tentativo invio email a:', "giulio@nabecreation.com");
+    console.log('📋 Dati ricevuti:', { email, phone, privacyAccepted, newsletterAccepted, whatsappAccepted });
+    
     const emailResponse = await resend.emails.send({
-      from: "noreply@nabecreation.com", // Dovrai verificare questo dominio su Resend
+      from: "onboarding@resend.dev", // Dominio verificato di default su Resend
       to: ["giulio@nabecreation.com"],
       subject: `🔥 Nuovo contatto dalla chat AI - ${email}`,
       html: `
@@ -86,6 +89,8 @@ export async function POST(request: NextRequest) {
         </div>
       `,
     });
+
+    console.log('✅ Email inviata con successo:', emailResponse);
 
     return NextResponse.json({ 
       success: true, 
