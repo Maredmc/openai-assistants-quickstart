@@ -9,11 +9,16 @@ interface ContactFormProps {
     content: string;
     timestamp?: string;
   }>;
+  onContactDeclined?: () => void;
+  showAlternativeOffer?: boolean;
 }
 
-export default function ContactForm({ chatHistory }: ContactFormProps) {
+export default function ContactForm({ chatHistory, onContactDeclined, showAlternativeOffer }: ContactFormProps) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [newsletterAccepted, setNewsletterAccepted] = useState(false);
+  const [whatsappAccepted, setWhatsappAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState("");
@@ -21,8 +26,13 @@ export default function ContactForm({ chatHistory }: ContactFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !phone) {
-      setError("Compila tutti i campi richiesti");
+    if (!email && !phone) {
+      setError("Inserisci almeno un contatto (email o telefono)");
+      return;
+    }
+
+    if (!privacyAccepted) {
+      setError("Devi accettare la Privacy Policy per continuare");
       return;
     }
 
@@ -38,6 +48,9 @@ export default function ContactForm({ chatHistory }: ContactFormProps) {
         body: JSON.stringify({
           email,
           phone,
+          privacyAccepted,
+          newsletterAccepted,
+          whatsappAccepted,
           chatHistory: chatHistory.map(msg => ({
             ...msg,
             timestamp: msg.timestamp || new Date().toISOString(),
@@ -51,6 +64,9 @@ export default function ContactForm({ chatHistory }: ContactFormProps) {
         setIsSubmitted(true);
         setEmail("");
         setPhone("");
+        setPrivacyAccepted(false);
+        setNewsletterAccepted(false);
+        setWhatsappAccepted(false);
       } else {
         setError(data.error || "Errore nell'invio della richiesta");
       }
@@ -62,11 +78,41 @@ export default function ContactForm({ chatHistory }: ContactFormProps) {
     }
   };
 
+  if (showAlternativeOffer) {
+    return (
+      <div className={styles["contact-form-container"]}>
+        <div className={styles["contact-form-header"]}>
+          Vuoi maggiori informazioni o un preventivo personalizzato?
+        </div>
+        <div className={styles["contact-form-subtitle"]}>
+          Posso ripresentarti il modulo per essere ricontattato se vuoi...
+        </div>
+        
+        <div className={styles["form-row"]}>
+          <button
+            onClick={() => window.location.reload()}
+            className={styles["submit-button"]}
+            style={{ marginRight: '10px' }}
+          >
+            Sì, mostra il modulo
+          </button>
+          <button
+            onClick={onContactDeclined}
+            className={styles["submit-button"]}
+            style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+          >
+            No, continua la chat
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (isSubmitted) {
     return (
       <div className={styles["contact-form-container"]}>
         <div className={styles["success-message"]}>
-          ✅ Perfetto! La tua richiesta è stata inviata con successo. 
+          Perfetto! La tua richiesta è stata inviata con successo. 
           Il nostro team ti contatterà presto per un preventivo personalizzato!
         </div>
       </div>
@@ -76,7 +122,7 @@ export default function ContactForm({ chatHistory }: ContactFormProps) {
   return (
     <div className={styles["contact-form-container"]}>
       <div className={styles["contact-form-header"]}>
-        📞 Vuoi un preventivo personalizzato?
+        Vuoi un preventivo personalizzato?
       </div>
       <div className={styles["contact-form-subtitle"]}>
         Lascia i tuoi contatti e ti richiameremo subito per discutere del tuo progetto!
@@ -86,7 +132,7 @@ export default function ContactForm({ chatHistory }: ContactFormProps) {
         <div className={styles["form-row"]}>
           <div className={styles["form-group"]}>
             <label className={styles["form-label"]} htmlFor="email">
-              📧 Email *
+              Email
             </label>
             <input
               type="email"
@@ -95,14 +141,13 @@ export default function ContactForm({ chatHistory }: ContactFormProps) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="la-tua-email@esempio.com"
               className={styles["form-input"]}
-              required
               disabled={isSubmitting}
             />
           </div>
           
           <div className={styles["form-group"]}>
             <label className={styles["form-label"]} htmlFor="phone">
-              📱 Telefono *
+              Telefono
             </label>
             <input
               type="tel"
@@ -111,24 +156,81 @@ export default function ContactForm({ chatHistory }: ContactFormProps) {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+39 xxx xxx xxxx"
               className={styles["form-input"]}
-              required
               disabled={isSubmitting}
             />
           </div>
         </div>
         
-        <button
-          type="submit"
-          className={styles["submit-button"]}
-          disabled={isSubmitting}
-        >
-          {isSubmitting && <div className={styles["loading-spinner"]} />}
-          {isSubmitting ? "Invio in corso..." : "🚀 Richiedi Preventivo"}
-        </button>
+        {/* Sezione Privacy e Consensi */}
+        <div className={styles["consent-section"]}>
+          <div className={styles["consent-item"]}>
+            <input
+              type="checkbox"
+              id="privacy"
+              checked={privacyAccepted}
+              onChange={(e) => setPrivacyAccepted(e.target.checked)}
+              className={styles["consent-checkbox"]}
+              disabled={isSubmitting}
+            />
+            <label htmlFor="privacy" className={styles["consent-label"]}>
+              Accetto la <a href="#" className={styles["privacy-link"]}>Privacy Policy</a> *
+            </label>
+          </div>
+
+          <div className={styles["consent-item"]}>
+            <input
+              type="checkbox"
+              id="newsletter"
+              checked={newsletterAccepted}
+              onChange={(e) => setNewsletterAccepted(e.target.checked)}
+              className={styles["consent-checkbox"]}
+              disabled={isSubmitting}
+            />
+            <label htmlFor="newsletter" className={styles["consent-label"]}>
+              Iscrivimi alla newsletter per ricevere il 5% di sconto sul catalogo
+            </label>
+          </div>
+
+          <div className={styles["consent-item"]}>
+            <input
+              type="checkbox"
+              id="whatsapp"
+              checked={whatsappAccepted}
+              onChange={(e) => setWhatsappAccepted(e.target.checked)}
+              className={styles["consent-checkbox"]}
+              disabled={isSubmitting}
+            />
+            <label htmlFor="whatsapp" className={styles["consent-label"]}>
+              Aggiungi il mio numero WhatsApp per promozioni e sconti esclusivi
+            </label>
+          </div>
+        </div>
+        
+        <div className={styles["form-row"]}>
+          <button
+            type="submit"
+            className={styles["submit-button"]}
+            disabled={isSubmitting}
+            style={{ marginRight: '10px' }}
+          >
+            {isSubmitting && <div className={styles["loading-spinner"]} />}
+            {isSubmitting ? "Invio in corso..." : "Richiedi Preventivo"}
+          </button>
+          
+          <button
+            type="button"
+            onClick={onContactDeclined}
+            className={styles["submit-button"]}
+            style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+            disabled={isSubmitting}
+          >
+            Non ora
+          </button>
+        </div>
         
         {error && (
           <div className={styles["error-message"]}>
-            ❌ {error}
+            {error}
           </div>
         )}
       </form>

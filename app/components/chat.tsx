@@ -15,16 +15,20 @@ type MessageProps = {
   text: string;
   showContactForm?: boolean;
   chatHistory?: Array<{role: string; content: string; timestamp?: string}>;
+  onContactDeclined?: () => void;
+  showAlternativeOffer?: boolean;
 };
 
 const UserMessage = ({ text }: { text: string }) => {
   return <div className={styles.userMessage}>{text}</div>;
 };
 
-const AssistantMessage = ({ text, showContactForm, chatHistory }: { 
+const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDeclined, showAlternativeOffer }: { 
   text: string;
   showContactForm?: boolean;
   chatHistory?: Array<{role: string; content: string; timestamp?: string}>;
+  onContactDeclined?: () => void;
+  showAlternativeOffer?: boolean;
 }) => {
   return (
     <div className={styles.assistantMessage}>
@@ -40,8 +44,12 @@ const AssistantMessage = ({ text, showContactForm, chatHistory }: {
         <span className={styles.assistantLabel}>Assistente</span>
       </div>
       <Markdown>{text}</Markdown>
-      {showContactForm && chatHistory && (
-        <ContactForm chatHistory={chatHistory} />
+      {(showContactForm || showAlternativeOffer) && chatHistory && (
+        <ContactForm 
+          chatHistory={chatHistory} 
+          onContactDeclined={onContactDeclined}
+          showAlternativeOffer={showAlternativeOffer}
+        />
       )}
     </div>
   );
@@ -83,12 +91,18 @@ const CodeMessage = ({ text }: { text: string }) => {
   );
 };
 
-const Message = ({ role, text, showContactForm, chatHistory }: MessageProps) => {
+const Message = ({ role, text, showContactForm, chatHistory, onContactDeclined, showAlternativeOffer }: MessageProps) => {
   switch (role) {
     case "user":
       return <UserMessage text={text} />;
     case "assistant":
-      return <AssistantMessage text={text} showContactForm={showContactForm} chatHistory={chatHistory} />;
+      return <AssistantMessage 
+        text={text} 
+        showContactForm={showContactForm} 
+        chatHistory={chatHistory} 
+        onContactDeclined={onContactDeclined}
+        showAlternativeOffer={showAlternativeOffer}
+      />;
     case "code":
       return <CodeMessage text={text} />;
     default:
@@ -111,6 +125,8 @@ const Chat = ({
   const [threadId, setThreadId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasAssistantResponded, setHasAssistantResponded] = useState(false);
+  const [contactDeclined, setContactDeclined] = useState(false);
+  const [showAlternativeOffer, setShowAlternativeOffer] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const scrollToBottom = () => {
@@ -167,6 +183,16 @@ const Chat = ({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!userInput.trim()) return;
+    
+    // Controlla se l'utente sta rifiutando di essere contattato
+    const refusalKeywords = ['no grazie', 'non voglio', 'non interessato', 'no thanks', 'non ora', 'magari dopo', 'non mi interessa', 'non ho bisogno', 'preferirei di no', 'non adesso'];
+    const userInputLower = userInput.toLowerCase();
+    const hasRefused = refusalKeywords.some(keyword => userInputLower.includes(keyword));
+    
+    if (hasRefused && !contactDeclined) {
+      setShowAlternativeOffer(true);
+    }
+    
     sendMessage(userInput);
     setMessages((prevMessages) => [
       ...prevMessages,
@@ -258,6 +284,16 @@ const Chat = ({
     setMessages((prevMessages) => [...prevMessages, { role, text }]);
   };
 
+  // Funzioni per gestire il rifiuto del contatto
+  const handleContactDeclined = () => {
+    setContactDeclined(true);
+    setShowAlternativeOffer(false);
+  };
+
+  const handleShowAlternativeOffer = () => {
+    setShowAlternativeOffer(true);
+  };
+
   // Funzione per convertire i messaggi in formato cronologia chat
   const getChatHistory = () => {
     return messages.map(msg => ({
@@ -330,13 +366,19 @@ const Chat = ({
             !isLoading && 
             index === messages.length - 1;
           
+          // Logica per mostrare il form di contatto
+          const shouldShowContactForm = isLastAssistantMessage && !contactDeclined && !showAlternativeOffer;
+          const shouldShowAlternative = isLastAssistantMessage && showAlternativeOffer;
+          
           return (
             <Message 
               key={index} 
               role={msg.role} 
               text={msg.text}
-              showContactForm={isLastAssistantMessage}
-              chatHistory={isLastAssistantMessage ? getChatHistory() : undefined}
+              showContactForm={shouldShowContactForm}
+              chatHistory={shouldShowContactForm ? getChatHistory() : undefined}
+              onContactDeclined={handleContactDeclined}
+              showAlternativeOffer={shouldShowAlternative}
             />
           );
         })}

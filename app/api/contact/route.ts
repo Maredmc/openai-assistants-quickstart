@@ -6,6 +6,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 interface ContactRequest {
   email: string;
   phone: string;
+  privacyAccepted: boolean;
+  newsletterAccepted: boolean;
+  whatsappAccepted: boolean;
   chatHistory: Array<{
     role: string;
     content: string;
@@ -16,12 +19,12 @@ interface ContactRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: ContactRequest = await request.json();
-    const { email, phone, chatHistory } = body;
+    const { email, phone, privacyAccepted, newsletterAccepted, whatsappAccepted, chatHistory } = body;
 
     // Validazione dei dati
-    if (!email || !phone) {
+    if (!email && !phone) {
       return NextResponse.json(
-        { error: "Email e numero di telefono sono obbligatori" },
+        { error: "Inserisci almeno un contatto (email o telefono)" },
         { status: 400 }
       );
     }
@@ -50,7 +53,7 @@ export async function POST(request: NextRequest) {
     // Invio email
     const emailResponse = await resend.emails.send({
       from: "noreply@nabecreation.com", // Dovrai verificare questo dominio su Resend
-      to: ["hello@nabecreation.com"],
+      to: ["giulio@nabecreation.com"],
       subject: `🔥 Nuovo contatto dalla chat AI - ${email}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
@@ -60,9 +63,14 @@ export async function POST(request: NextRequest) {
           
           <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3 style="color: #374151; margin-top: 0;">📋 Dati di Contatto</h3>
-            <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
-            <p><strong>Telefono:</strong> <a href="tel:${phone}">${phone}</a></p>
+            <p><strong>Email:</strong> <a href="mailto:${email}">${email || 'Non fornita'}</a></p>
+            <p><strong>Telefono:</strong> <a href="tel:${phone}">${phone || 'Non fornito'}</a></p>
             <p><strong>Data richiesta:</strong> ${new Date().toLocaleString()}</p>
+            <br>
+            <h4 style="color: #374151; margin-bottom: 10px;">✅ Consensi Privacy</h4>
+            <p><strong>Privacy Policy:</strong> ${privacyAccepted ? '✅ Accettata' : '❌ Non accettata'}</p>
+            <p><strong>Newsletter (5% sconto):</strong> ${newsletterAccepted ? '✅ Iscritto' : '❌ Non iscritto'}</p>
+            <p><strong>WhatsApp Marketing:</strong> ${whatsappAccepted ? '✅ Autorizzato' : '❌ Non autorizzato'}</p>
           </div>
 
           <div style="margin: 30px 0;">
