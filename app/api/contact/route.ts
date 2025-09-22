@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     console.log('📋 Dati ricevuti:', { email, phone, privacyAccepted, newsletterAccepted, whatsappAccepted });
     
     const emailResponse = await resend.emails.send({
-      from: "onboarding@resend.dev", // Dominio verificato di default su Resend
+      from: "noreply@nabe.it", // Dominio verificato su Resend
       to: ["giulio@nabecreation.com"],
       subject: `🔥 Nuovo contatto dalla chat AI - ${email}`,
       html: `
