@@ -8,17 +8,24 @@ import Markdown from "react-markdown";
 // @ts-expect-error - no types for this yet
 import { AssistantStreamEvent } from "openai/resources/beta/assistants/assistants";
 import { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/runs/runs";
+import ContactForm from "./contact-form";
 
 type MessageProps = {
   role: "user" | "assistant" | "code";
   text: string;
+  showContactForm?: boolean;
+  chatHistory?: Array<{role: string; content: string; timestamp?: string}>;
 };
 
 const UserMessage = ({ text }: { text: string }) => {
   return <div className={styles.userMessage}>{text}</div>;
 };
 
-const AssistantMessage = ({ text }: { text: string }) => {
+const AssistantMessage = ({ text, showContactForm, chatHistory }: { 
+  text: string;
+  showContactForm?: boolean;
+  chatHistory?: Array<{role: string; content: string; timestamp?: string}>;
+}) => {
   return (
     <div className={styles.assistantMessage}>
       <div className={styles.assistantHeader}>
@@ -33,6 +40,9 @@ const AssistantMessage = ({ text }: { text: string }) => {
         <span className={styles.assistantLabel}>Assistente</span>
       </div>
       <Markdown>{text}</Markdown>
+      {showContactForm && chatHistory && (
+        <ContactForm chatHistory={chatHistory} />
+      )}
     </div>
   );
 };
@@ -73,12 +83,12 @@ const CodeMessage = ({ text }: { text: string }) => {
   );
 };
 
-const Message = ({ role, text }: MessageProps) => {
+const Message = ({ role, text, showContactForm, chatHistory }: MessageProps) => {
   switch (role) {
     case "user":
       return <UserMessage text={text} />;
     case "assistant":
-      return <AssistantMessage text={text} />;
+      return <AssistantMessage text={text} showContactForm={showContactForm} chatHistory={chatHistory} />;
     case "code":
       return <CodeMessage text={text} />;
     default:
@@ -100,6 +110,7 @@ const Chat = ({
   const [inputDisabled, setInputDisabled] = useState(false);
   const [threadId, setThreadId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [hasAssistantResponded, setHasAssistantResponded] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const scrollToBottom = () => {
@@ -169,6 +180,9 @@ const Chat = ({
 
   const handleTextCreated = () => {
     appendMessage("assistant", "");
+    if (!hasAssistantResponded) {
+      setHasAssistantResponded(true);
+    }
   };
 
   const handleTextDelta = (delta) => {
@@ -244,6 +258,15 @@ const Chat = ({
     setMessages((prevMessages) => [...prevMessages, { role, text }]);
   };
 
+  // Funzione per convertire i messaggi in formato cronologia chat
+  const getChatHistory = () => {
+    return messages.map(msg => ({
+      role: msg.role === 'assistant' ? 'assistant' : 'user',
+      content: msg.text,
+      timestamp: new Date().toISOString()
+    }));
+  };
+
   const annotateLastMessage = (annotations) => {
     setMessages((prevMessages) => {
       const lastMessage = prevMessages[prevMessages.length - 1];
@@ -300,9 +323,23 @@ const Chat = ({
           </div>
         )}
         
-        {messages.map((msg, index) => (
-          <Message key={index} role={msg.role} text={msg.text} />
-        ))}
+        {messages.map((msg, index) => {
+          const isLastAssistantMessage = 
+            msg.role === 'assistant' && 
+            hasAssistantResponded && 
+            !isLoading && 
+            index === messages.length - 1;
+          
+          return (
+            <Message 
+              key={index} 
+              role={msg.role} 
+              text={msg.text}
+              showContactForm={isLastAssistantMessage}
+              chatHistory={isLastAssistantMessage ? getChatHistory() : undefined}
+            />
+          );
+        })}
         
         {isLoading && <LoadingMessage />}
         
