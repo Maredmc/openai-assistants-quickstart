@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       message: "Richiesta di contatto inviata con successo!",
-      emailId: data.id 
+      emailId: data.data?.id || data.id || "unknown"
     });
 
   } catch (error) {
