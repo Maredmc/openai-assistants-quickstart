@@ -165,25 +165,56 @@ const Chat = ({
     // Se l'utente chiede prodotti, aggiungiamo i dati reali
     if (hasProductQuery) {
       try {
-        console.log('🛍️ User asking about products, fetching data...');
-        const response = await fetch('/api/products?action=list');
-        const data = await response.json();
+        console.log('🛍️ [AI] User asking about products, fetching data...');
+        const response = await fetch('/api/products?action=list', {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
         
-        if (data.success && data.products.length > 0) {
-          const productsInfo = data.products.slice(0, 8).map(product => 
-            `**${product.name}**: ${product.price} - ${product.description}`
-          ).join('\n');
+        console.log('📊 [AI] Products API response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('📋 [AI] Products API data:', {
+            success: data.success,
+            productsCount: data.products?.length || 0,
+            totalProducts: data.totalProducts,
+            lastSync: data.lastSync
+          });
           
-          systemInstructions += `
+          if (data.success && data.products && data.products.length > 0) {
+            const productsInfo = data.products.slice(0, 6).map(product => 
+              `**${product.name}**: ${product.price} - ${product.description.substring(0, 80)}...`
+            ).join('\n');
+            
+            systemInstructions += `
 
-PRODOTTI DISPONIBILI (dati reali aggiornati):
+PRODOTTI NABÈ DISPONIBILI (dati reali e aggiornati):
 ${productsInfo}
 
-USA QUESTI DATI REALI per rispondere alle domande sui prodotti.`;
-          console.log(`✅ Added ${data.products.length} products to AI context`);
+⚡ IMPORTANTE: USA QUESTI DATI REALI per rispondere. Menziona prezzi specifici e nomi esatti dei prodotti.`;
+            console.log(`✅ [AI] Added ${data.products.length} real products to AI context`);
+          } else {
+            console.log('⚠️ [AI] No products found in API response');
+            // Fallback con prodotti base
+            systemInstructions += `
+
+PRODOTTI NABÈ (informazioni base):
+**Letto Montessori zero+ Dream**: da €590 - Letto evolutivo con casetta/baldacchino
+**Sponde Protettive zero+**: da €120 - Sponde modulari per sicurezza bambini`;
+          }
+        } else {
+          console.error('❌ [AI] Products API failed:', response.status, response.statusText);
         }
       } catch (error) {
-        console.error('❌ Error fetching products for AI:', error);
+        console.error('❌ [AI] Error fetching products:', error);
+        // Fallback con informazioni base
+        systemInstructions += `
+
+PRODOTTI NABÈ:
+**Letto Montessori zero+ Dream**: da €590 - Letto evolutivo montessoriano
+**Sponde Protettive zero+**: da €120 - Accessori di sicurezza`;
       }
     }
 
