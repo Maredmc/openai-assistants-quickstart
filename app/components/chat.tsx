@@ -149,15 +149,45 @@ const Chat = ({
   }, []);
 
   const sendMessage = async (text) => {
-    // Aggiungiamo istruzioni di sistema per migliorare le risposte
-    const systemInstructions = `ISTRUZIONI IMPORTANTI:
+    // Proviamo a rilevare se l'utente sta chiedendo prodotti specifici
+    const productKeywords = ['letto', 'prodotto', 'prezzo', 'costo', 'catalogo', 'modello', 'disponibilità', 'montessori', 'bambino', 'sponde', 'materasso'];
+    const hasProductQuery = productKeywords.some(keyword => 
+      text.toLowerCase().includes(keyword)
+    );
+
+    let systemInstructions = `ISTRUZIONI IMPORTANTI:
 - Rispondi in modo CONCISO e DIRETTO
 - Quando consigli prodotti usa ELENCHI PUNTATI con GRASSETTI sui punti principali
 - Massimo 3-4 frasi per spiegazione, poi vai al sodo
-- Usa formato: **Nome Prodotto**: breve descrizione
-- Evita giri di parole, sii pratico e utile
+- Usa formato: **Nome Prodotto**: breve descrizione benefici
+- Evita giri di parole, sii pratico e utile`;
 
-Domanda utente: ${text}`;
+    // Se l'utente chiede prodotti, aggiungiamo i dati reali
+    if (hasProductQuery) {
+      try {
+        console.log('🛍️ User asking about products, fetching data...');
+        const response = await fetch('/api/products?action=list');
+        const data = await response.json();
+        
+        if (data.success && data.products.length > 0) {
+          const productsInfo = data.products.slice(0, 8).map(product => 
+            `**${product.name}**: ${product.price} - ${product.description}`
+          ).join('\n');
+          
+          systemInstructions += `
+
+PRODOTTI DISPONIBILI (dati reali aggiornati):
+${productsInfo}
+
+USA QUESTI DATI REALI per rispondere alle domande sui prodotti.`;
+          console.log(`✅ Added ${data.products.length} products to AI context`);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching products for AI:', error);
+      }
+    }
+
+    systemInstructions += `\n\nDomanda utente: ${text}`;
     
     const response = await fetch(
       `/api/assistants/threads/${threadId}/messages`,
