@@ -12,6 +12,16 @@ const BedAdvisorChatbot = () => {
       <div className={styles.header}>
         <div className={styles.headerContent}>
           <div className={styles.headerInner}>
+            <div className={styles.logo}>
+              <Image 
+                src="/logo_nabè.png" 
+                alt="Logo Nabè" 
+                width={28} 
+                height={28}
+                className={styles.logoIcon}
+              />
+            </div>
+            <div>
               <h1 className={styles.title}>Assistente Letti AI</h1>
               <p className={styles.subtitle}>Il tuo consulente per il riposo perfetto</p>
             </div>
