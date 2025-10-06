@@ -410,8 +410,7 @@ PRODOTTI NABÈ:
       <div className={styles.messages}>
         {messages.length === 0 && (
   <div className={styles.welcomeMessage}>
-    <div className={styles.welcomeIcon}>🏠</div>
-    <h2>Benvenuto in Nabè Creation!</h2>
+    <h2>Benvenuto in Nabè!</h2>
     <p>Sono il tuo consulente specializzato per trovare il letto perfetto per il tuo bambino. Insieme creeremo il rifugio dei sogni ideale!</p>
             <div className={styles.quickQuestions}>
   <p className={styles.quickQuestionsTitle}>Iniziamo con queste domande:</p>
