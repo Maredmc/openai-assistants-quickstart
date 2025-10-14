@@ -9,6 +9,7 @@ import Markdown from "react-markdown";
 import { AssistantStreamEvent } from "openai/resources/beta/assistants/assistants";
 import { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/runs/runs";
 import ContactForm from "./contact-form";
+import ProductCard from "./product-card";
 
 type MessageProps = {
   role: "user" | "assistant" | "code";
@@ -17,18 +18,30 @@ type MessageProps = {
   chatHistory?: Array<{role: string; content: string; timestamp?: string}>;
   onContactDeclined?: () => void;
   showAlternativeOffer?: boolean;
+  products?: any[];
 };
+
+interface Product {
+  id: string;
+  name: string;
+  price: string;
+  description: string;
+  images: string[];
+  url: string;
+  inStock: boolean;
+}
 
 const UserMessage = ({ text }: { text: string }) => {
   return <div className={styles.userMessage}>{text}</div>;
 };
 
-const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDeclined, showAlternativeOffer }: { 
+const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDeclined, showAlternativeOffer, products }: { 
   text: string;
   showContactForm?: boolean;
   chatHistory?: Array<{role: string; content: string; timestamp?: string}>;
   onContactDeclined?: () => void;
   showAlternativeOffer?: boolean;
+  products?: any[];
 }) => {
   return (
     <div className={styles.assistantMessage}>
@@ -44,6 +57,25 @@ const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDecline
         <span className={styles.assistantLabel}>Assistente</span>
       </div>
       <Markdown>{text}</Markdown>
+      
+      {/* Mostra prodotti consigliati */}
+      {products && products.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '16px' }}>
+          {products.map((product) => (
+            <ProductCard
+              key={product.id}
+              id={product.id}
+              name={product.name}
+              price={product.price}
+              description={product.description}
+              image={product.images?.[0]}
+              url={product.url}
+              inStock={product.inStock}
+            />
+          ))}
+        </div>
+      )}
+      
       {(showContactForm || showAlternativeOffer) && chatHistory && (
         <ContactForm 
           chatHistory={chatHistory} 
@@ -91,7 +123,7 @@ const CodeMessage = ({ text }: { text: string }) => {
   );
 };
 
-const Message = ({ role, text, showContactForm, chatHistory, onContactDeclined, showAlternativeOffer }: MessageProps) => {
+const Message = ({ role, text, showContactForm, chatHistory, onContactDeclined, showAlternativeOffer, products }: MessageProps) => {
   switch (role) {
     case "user":
       return <UserMessage text={text} />;
@@ -102,6 +134,7 @@ const Message = ({ role, text, showContactForm, chatHistory, onContactDeclined, 
         chatHistory={chatHistory} 
         onContactDeclined={onContactDeclined}
         showAlternativeOffer={showAlternativeOffer}
+        products={products}
       />;
     case "code":
       return <CodeMessage text={text} />;
@@ -329,9 +362,29 @@ PRODOTTI NABÈ:
     submitActionResult(runId, toolCallOutputs);
   };
 
-  const handleRunCompleted = () => {
+  const handleRunCompleted = async () => {
     setInputDisabled(false);
     setIsLoading(false);
+    
+    // Dopo che l'AI ha finito, cerca prodotti nel messaggio
+    setMessages(async (prevMessages) => {
+      const lastMessage = prevMessages[prevMessages.length - 1];
+      
+      if (lastMessage && lastMessage.role === 'assistant') {
+        const products = await extractAndFetchProducts(lastMessage.text);
+        
+        if (products.length > 0) {
+          console.log(`✅ Found ${products.length} products in AI response`);
+          const updatedLastMessage = {
+            ...lastMessage,
+            products: products
+          };
+          return [...prevMessages.slice(0, -1), updatedLastMessage];
+        }
+      }
+      
+      return prevMessages;
+    });
   };
 
   const handleReadableStream = (stream: AssistantStream) => {
@@ -357,6 +410,41 @@ PRODOTTI NABÈ:
       };
       return [...prevMessages.slice(0, -1), updatedLastMessage];
     });
+  };
+
+  // Funzione per estrarre e fetchare prodotti dal testo dell'AI
+  const extractAndFetchProducts = async (text: string) => {
+    try {
+      // Fetch tutti i prodotti
+      const response = await fetch('/api/products?action=list');
+      if (!response.ok) return [];
+      
+      const data = await response.json();
+      if (!data.success || !data.products) return [];
+      
+      // Cerca prodotti menzionati nel testo (case insensitive)
+      const mentionedProducts = data.products.filter((product: Product) => {
+        const productName = product.name.toLowerCase();
+        const textLower = text.toLowerCase();
+        
+        // Cerca il nome completo o parti significative
+        const nameWords = productName.split(' ');
+        const significantWords = nameWords.filter(word => 
+          word.length > 3 && 
+          !['letto', 'per', 'con', 'zero'].includes(word)
+        );
+        
+        // Match se il nome completo o almeno 2 parole significative sono presenti
+        return textLower.includes(productName) || 
+               significantWords.filter(word => textLower.includes(word)).length >= 2;
+      });
+      
+      // Limita a max 3 prodotti per evitare sovraccarico visivo
+      return mentionedProducts.slice(0, 3);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      return [];
+    }
   };
 
   const appendMessage = (role, text) => {
@@ -462,6 +550,7 @@ PRODOTTI NABÈ:
               chatHistory={shouldShowContactForm ? getChatHistory() : undefined}
               onContactDeclined={handleContactDeclined}
               showAlternativeOffer={shouldShowAlternative}
+              products={msg.products}
             />
           );
         })}
