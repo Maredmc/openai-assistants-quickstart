@@ -167,12 +167,10 @@ type ChatProps = {
   functionCallHandler?: (
     toolCall: RequiredActionFunctionToolCall
   ) => Promise<string>;
-  onCartUpdate?: () => void;
 };
 
 const Chat = ({
   functionCallHandler = () => Promise.resolve(""),
-  onCartUpdate,
 }: ChatProps) => {
   const [userInput, setUserInput] = useState("");
   const [messages, setMessages] = useState([]);
@@ -568,11 +566,6 @@ PRODOTTI NABÈ:
       // Aggiorna count locale
       const cart = getCart();
       setCartCount(getCartItemCount(cart));
-      
-      // Notifica parent component
-      if (onCartUpdate) {
-        onCartUpdate();
-      }
       
       // Track analytics Shopify
       trackAddToCart(product.id, product.name, 1);

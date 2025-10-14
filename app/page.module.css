@@ -16,9 +16,6 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 20px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .headerInner {
@@ -66,60 +63,4 @@
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
-}
-
-/* Bottone Carrello */
-.cartButton {
-  position: relative;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border: none;
-  border-radius: 12px;
-  padding: 12px 20px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.cartButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.cartButton:active {
-  transform: translateY(0);
-}
-
-.cartIcon {
-  font-size: 24px;
-}
-
-.cartBadge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  background: #ef4444;
-  color: white;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 10px;
-  min-width: 20px;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  animation: bounceIn 0.3s ease;
-}
-
-@keyframes bounceIn {
-  0% {
-    transform: scale(0);
-  }
-  50% {
-    transform: scale(1.2);
-  }
-  100% {
-    transform: scale(1);
-  }
 }
