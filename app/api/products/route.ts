@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { syncProducts, searchProducts, getCacheStatus } from "@/app/lib/ecommerce";
+import { fetchShopifyProducts, searchShopifyProducts, getShopifyCacheStatus } from "@/app/lib/shopify";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,19 +14,19 @@ export async function GET(request: NextRequest) {
     switch (action) {
       case 'status':
         // Ritorna lo status della cache
-        const cacheStatus = getCacheStatus();
+        const cacheStatus = getShopifyCacheStatus();
         return NextResponse.json({
           success: true,
           ...cacheStatus
         });
 
       case 'sync':
-        // Forza sincronizzazione prodotti
-        console.log('🔄 Force syncing products...');
-        const syncResult = await syncProducts(true);
+        // Forza sincronizzazione prodotti da Shopify
+        console.log('🔄 Force syncing products from Shopify...');
+        const syncResult = await fetchShopifyProducts(true);
         return NextResponse.json({
           success: true,
-          message: 'Products synchronized successfully',
+          message: 'Products synchronized successfully from Shopify',
           totalProducts: syncResult.totalProducts,
           lastSync: syncResult.lastSync
         });
@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
           }, { status: 400 });
         }
 
-        const productsData = await syncProducts(forceRefresh);
-        const searchResults = searchProducts(query, productsData.products);
+        const productsData = await fetchShopifyProducts(forceRefresh);
+        const searchResults = searchShopifyProducts(query, productsData.products);
 
         return NextResponse.json({
           success: true,
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       case 'list':
       default:
         // Lista tutti i prodotti (o filtrati per categoria)
-        const allProductsData = await syncProducts(forceRefresh);
+        const allProductsData = await fetchShopifyProducts(forceRefresh);
         let products = allProductsData.products;
 
         if (category) {
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
           success: true,
-          products: products.slice(0, 20), // Limita a 20 per performance
+          products: products.slice(0, 50), // Limita a 50 per performance
           totalProducts: allProductsData.totalProducts,
           filteredProducts: products.length,
           category: category || 'all',
@@ -89,11 +89,11 @@ export async function POST(request: NextRequest) {
 
     if (action === 'sync') {
       console.log('🔄 Manual sync triggered via POST');
-      const syncResult = await syncProducts(true);
+      const syncResult = await fetchShopifyProducts(true);
       
       return NextResponse.json({
         success: true,
-        message: 'Manual sync completed successfully',
+        message: 'Manual sync completed successfully from Shopify',
         totalProducts: syncResult.totalProducts,
         lastSync: syncResult.lastSync
       });
