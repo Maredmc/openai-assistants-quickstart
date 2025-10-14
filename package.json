@@ -17,7 +17,6 @@
     "react-markdown": "^9.0.1",
     "resend": "^3.2.0",
     "sqlite3": "^5.1.6",
-    "better-sqlite3": "^9.4.3",
     "recharts": "^2.10.3"
   },
   "devDependencies": {
