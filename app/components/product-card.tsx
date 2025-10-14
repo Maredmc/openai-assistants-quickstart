@@ -12,6 +12,7 @@ interface ProductCardProps {
   image?: string;
   url: string;
   inStock?: boolean;
+  onAddToCart?: (productId: string) => void;
 }
 
 const ProductCard = ({ 
@@ -21,7 +22,8 @@ const ProductCard = ({
   description, 
   image, 
   url, 
-  inStock = true 
+  inStock = true,
+  onAddToCart
 }: ProductCardProps) => {
   const productImage = image || "/logo_nabè.png";
   
@@ -55,19 +57,30 @@ const ProductCard = ({
           <span className={styles.productBadge}>Disponibile</span>
         )}
         
-        <a 
-          href={url} 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className={styles.productLink}
-          onClick={(e) => {
-            if (!inStock) {
-              e.preventDefault();
-            }
-          }}
-        >
-          {inStock ? 'Vedi prodotto' : 'Non disponibile'}
-        </a>
+        <div className={styles.buttonGroup}>
+          <a 
+            href={url} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className={styles.productLink}
+            onClick={(e) => {
+              if (!inStock) {
+                e.preventDefault();
+              }
+            }}
+          >
+            {inStock ? 'Vedi prodotto' : 'Non disponibile'}
+          </a>
+          
+          {inStock && onAddToCart && (
+            <button 
+              className={styles.addToCartButton}
+              onClick={() => onAddToCart(id)}
+            >
+              🛒 Aggiungi al carrello
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -60,10 +60,39 @@
   font-weight: 500;
   margin-top: 12px;
   transition: background 0.2s ease;
+  margin-right: 8px;
 }
 
 .productLink:hover {
   background: #059669;
+}
+
+.addToCartButton {
+  display: inline-block;
+  background: #3b82f6;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 500;
+  margin-top: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.addToCartButton:hover {
+  background: #2563eb;
+}
+
+.addToCartButton:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .productBadge {
