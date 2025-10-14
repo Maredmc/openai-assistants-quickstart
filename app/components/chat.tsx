@@ -10,7 +10,6 @@ import { AssistantStreamEvent } from "openai/resources/beta/assistants/assistant
 import { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/runs/runs";
 import ContactForm from "./contact-form";
 import ProductCard from "./product-card";
-import { trackProductRecommendation, trackAddToCart, getSessionId } from "../lib/analytics-client";
 import { addToCart, getCart, getCartItemCount } from "../lib/cart";
 
 type MessageProps = {
@@ -67,11 +66,6 @@ const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDecline
       {products && products.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '16px' }}>
           {products.map((product) => {
-            // Track product recommendation
-            if (typeof window !== 'undefined') {
-              trackProductRecommendation(product.id, product.name, product.price, text);
-            }
-            
             return (
               <ProductCard
                 key={product.id}
@@ -91,9 +85,6 @@ const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDecline
                       image: product.images?.[0] || '/logo_nabè.png',
                       url: product.url
                     });
-                    
-                    // Track analytics
-                    trackAddToCart(product.id, product.name, product.price);
                     
                     // Aggiorna cart count nello stato
                     const updatedCart = getCart();
@@ -580,9 +571,6 @@ PRODOTTI NABÈ:
     // Aggiorna count
     const cart = getCart();
     setCartCount(getCartItemCount(cart));
-    
-    // Track analytics
-    trackAddToCart(productId, productName, productPrice);
     
     // Mostra notifica
     alert(`✅ ${productName} aggiunto al carrello!`);
