@@ -31,7 +31,7 @@ const EVENTS_KEY = 'nabe_analytics_events';
 
 // Genera o recupera session ID
 export const getSessionId = (): string => {
-  if (typeof window === 'undefined') return '';
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return '';
   
   let sessionId = localStorage.getItem(ANALYTICS_KEY);
   
@@ -45,7 +45,7 @@ export const getSessionId = (): string => {
 
 // Traccia evento
 export const trackEvent = (type: AnalyticsEvent['type'], data: any = {}) => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
   
   const event: AnalyticsEvent = {
     type,
@@ -67,7 +67,7 @@ export const trackEvent = (type: AnalyticsEvent['type'], data: any = {}) => {
 
 // Recupera eventi
 const getEvents = (): AnalyticsEvent[] => {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return [];
   
   try {
     const events = localStorage.getItem(EVENTS_KEY);
@@ -164,7 +164,7 @@ export const getConversationSummary = (): ConversationSummary => {
 
 // Pulisci sessione (dopo checkout completato)
 export const clearSession = () => {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
     localStorage.removeItem(ANALYTICS_KEY);
     localStorage.removeItem(EVENTS_KEY);
   }
