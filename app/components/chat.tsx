@@ -10,6 +10,8 @@ import { AssistantStreamEvent } from "openai/resources/beta/assistants/assistant
 import { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/runs/runs";
 import ContactForm from "./contact-form";
 import ProductCard from "./product-card";
+import { trackProductRecommendation, trackAddToCart, getSessionId } from "../lib/analytics-client";
+import { addToCart, getCart, getCartItemCount } from "../lib/cart";
 
 type MessageProps = {
   role: "user" | "assistant" | "code";
@@ -64,18 +66,45 @@ const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDecline
       {/* Mostra prodotti consigliati */}
       {products && products.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '16px' }}>
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              id={product.id}
-              name={product.name}
-              price={product.price}
-              description={product.description}
-              image={product.images?.[0]}
-              url={product.url}
-              inStock={product.inStock}
-            />
-          ))}
+          {products.map((product) => {
+            // Track product recommendation
+            if (typeof window !== 'undefined') {
+              trackProductRecommendation(product.id, product.name, product.price, text);
+            }
+            
+            return (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                name={product.name}
+                price={product.price}
+                description={product.description}
+                image={product.images?.[0]}
+                url={product.url}
+                inStock={product.inStock}
+                onAddToCart={(productId) => {
+                  if (typeof window !== 'undefined') {
+                    const cart = getCart();
+                    addToCart({
+                      productId: product.id,
+                      name: product.name,
+                      price: product.price,
+                      image: product.images?.[0] || '/logo_nabè.png',
+                      url: product.url
+                    });
+                    
+                    // Aggiorna UI (dovremmo usare un context o state management migliore)
+                    window.dispatchEvent(new Event('cartUpdated'));
+                    
+                    // Track analytics
+                    trackAddToCart(product.id, product.name, product.price);
+                    
+                    alert(`✅ ${product.name} aggiunto al carrello!`);
+                  }
+                }}
+              />
+            );
+          })}
         </div>
       )}
       
@@ -163,6 +192,13 @@ const Chat = ({
   const [hasAssistantResponded, setHasAssistantResponded] = useState(false);
   const [contactDeclined, setContactDeclined] = useState(false);
   const [showAlternativeOffer, setShowAlternativeOffer] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+
+  // Inizializza cart count
+  useEffect(() => {
+    const cart = getCart();
+    setCartCount(getCartItemCount(cart));
+  }, []);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const scrollToBottom = () => {
@@ -526,6 +562,27 @@ PRODOTTI NABÈ:
       content: msg.text,
       timestamp: new Date().toISOString()
     }));
+  };
+
+  // Gestisci aggiunta al carrello
+  const handleAddToCart = (productId: string, productName: string, productPrice: string, productImage: string, productUrl: string) => {
+    addToCart({
+      productId,
+      name: productName,
+      price: productPrice,
+      image: productImage,
+      url: productUrl
+    });
+    
+    // Aggiorna count
+    const cart = getCart();
+    setCartCount(getCartItemCount(cart));
+    
+    // Track analytics
+    trackAddToCart(productId, productName, productPrice);
+    
+    // Mostra notifica
+    alert(`✅ ${productName} aggiunto al carrello!`);
   };
 
   const annotateLastMessage = (annotations) => {
