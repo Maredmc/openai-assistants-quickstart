@@ -1,7 +1,7 @@
 // Analytics tracking system
 export interface AnalyticsEvent {
   type: 'chat_started' | 'product_recommended' | 'product_clicked' | 'product_added_to_cart' | 'contact_form_submitted' | 'checkout_started';
-  timestamp: Date;
+  timestamp: string;
   sessionId: string;
   data: any;
 }
@@ -49,7 +49,7 @@ export const trackEvent = (type: AnalyticsEvent['type'], data: any = {}) => {
   
   const event: AnalyticsEvent = {
     type,
-    timestamp: new Date(),
+    timestamp: new Date().toISOString(), // Converti in stringa ISO
     sessionId: getSessionId(),
     data
   };
