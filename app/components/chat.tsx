@@ -367,24 +367,35 @@ PRODOTTI NABÈ:
     setIsLoading(false);
     
     // Dopo che l'AI ha finito, cerca prodotti nel messaggio
-    setMessages(async (prevMessages) => {
-      const lastMessage = prevMessages[prevMessages.length - 1];
-      
-      if (lastMessage && lastMessage.role === 'assistant') {
-        const products = await extractAndFetchProducts(lastMessage.text);
+    // Usiamo setTimeout per eseguire dopo il render
+    setTimeout(async () => {
+      setMessages((prevMessages) => {
+        const lastMessage = prevMessages[prevMessages.length - 1];
         
-        if (products.length > 0) {
-          console.log(`✅ Found ${products.length} products in AI response`);
-          const updatedLastMessage = {
-            ...lastMessage,
-            products: products
-          };
-          return [...prevMessages.slice(0, -1), updatedLastMessage];
+        if (lastMessage && lastMessage.role === 'assistant' && lastMessage.text) {
+          // Esegui fetch in background
+          extractAndFetchProducts(lastMessage.text).then((products) => {
+            if (products.length > 0) {
+              console.log(`✅ Found ${products.length} products in AI response:`, products.map(p => p.name));
+              setMessages((msgs) => {
+                const lastMsg = msgs[msgs.length - 1];
+                if (lastMsg.role === 'assistant') {
+                  return [
+                    ...msgs.slice(0, -1),
+                    { ...lastMsg, products: products }
+                  ];
+                }
+                return msgs;
+              });
+            } else {
+              console.log('⚠️ No products found in AI response');
+            }
+          });
         }
-      }
-      
-      return prevMessages;
-    });
+        
+        return prevMessages;
+      });
+    }, 100);
   };
 
   const handleReadableStream = (stream: AssistantStream) => {
@@ -415,34 +426,62 @@ PRODOTTI NABÈ:
   // Funzione per estrarre e fetchare prodotti dal testo dell'AI
   const extractAndFetchProducts = async (text: string) => {
     try {
+      console.log('🔍 Searching for products in text:', text.substring(0, 100) + '...');
+      
       // Fetch tutti i prodotti
       const response = await fetch('/api/products?action=list');
-      if (!response.ok) return [];
+      if (!response.ok) {
+        console.error('❌ Products API failed');
+        return [];
+      }
       
       const data = await response.json();
-      if (!data.success || !data.products) return [];
+      if (!data.success || !data.products) {
+        console.error('❌ No products in API response');
+        return [];
+      }
+      
+      console.log(`📊 Total products available: ${data.products.length}`);
       
       // Cerca prodotti menzionati nel testo (case insensitive)
+      const textLower = text.toLowerCase();
       const mentionedProducts = data.products.filter((product: Product) => {
         const productName = product.name.toLowerCase();
-        const textLower = text.toLowerCase();
         
-        // Cerca il nome completo o parti significative
-        const nameWords = productName.split(' ');
-        const significantWords = nameWords.filter(word => 
-          word.length > 3 && 
-          !['letto', 'per', 'con', 'zero'].includes(word)
-        );
+        // Match diretto del nome completo
+        if (textLower.includes(productName)) {
+          console.log(`✅ Direct match found: ${product.name}`);
+          return true;
+        }
         
-        // Match se il nome completo o almeno 2 parole significative sono presenti
-        return textLower.includes(productName) || 
-               significantWords.filter(word => textLower.includes(word)).length >= 2;
+        // Match parziale: cerca parole chiave significative
+        const keywords = [
+          'montessori', 'dream', 'casetta', 'baldacchino', 
+          'sponde', 'protettive', 'lettino', 'junior',
+          'singolo', 'doppio', 'castello', 'materasso'
+        ];
+        
+        let matchCount = 0;
+        keywords.forEach(keyword => {
+          if (productName.includes(keyword) && textLower.includes(keyword)) {
+            matchCount++;
+          }
+        });
+        
+        if (matchCount >= 1) {
+          console.log(`✅ Keyword match found (${matchCount} keywords): ${product.name}`);
+          return true;
+        }
+        
+        return false;
       });
+      
+      console.log(`🎯 Total products matched: ${mentionedProducts.length}`);
       
       // Limita a max 3 prodotti per evitare sovraccarico visivo
       return mentionedProducts.slice(0, 3);
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('❌ Error fetching products:', error);
       return [];
     }
   };
