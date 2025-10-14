@@ -7,7 +7,7 @@ const SHOPIFY_API_VERSION = '2024-10';
 
 interface AnalyticsEvent {
   type: string;
-  timestamp: Date;
+  timestamp: string | Date;
   sessionId: string;
   data: any;
 }
