@@ -453,7 +453,7 @@ PRODOTTI NABÈ:
       
       // Cerca tag [PRODOTTO: id] nel testo
       const productTagRegex = /\[PRODOTTO:\s*([^\]]+)\]/gi;
-      const matches = [...text.matchAll(productTagRegex)];
+      const matches = Array.from(text.matchAll(productTagRegex));
       
       if (matches.length === 0) {
         console.log('⚠️ No [PRODOTTO: id] tags found in AI response');
