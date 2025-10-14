@@ -43,6 +43,9 @@ const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDecline
   showAlternativeOffer?: boolean;
   products?: any[];
 }) => {
+  // Rimuovi i tag [PRODOTTO: id] dal testo visualizzato
+  const cleanText = text.replace(/\[PRODOTTO:\s*[^\]]+\]/gi, '').trim();
+  
   return (
     <div className={styles.assistantMessage}>
       <div className={styles.assistantHeader}>
@@ -56,7 +59,7 @@ const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDecline
         </div>
         <span className={styles.assistantLabel}>Assistente</span>
       </div>
-      <Markdown>{text}</Markdown>
+      <Markdown>{cleanText}</Markdown>
       
       {/* Mostra prodotti consigliati */}
       {products && products.length > 0 && (
@@ -192,8 +195,19 @@ const Chat = ({
 - Rispondi in modo CONCISO e DIRETTO
 - Quando consigli prodotti usa ELENCHI PUNTATI con GRASSETTI sui punti principali
 - Massimo 3-4 frasi per spiegazione, poi vai al sodo
-- Usa formato: **Nome Prodotto**: breve descrizione benefici
-- Evita giri di parole, sii pratico e utile`;
+- Evita giri di parole, sii pratico e utile
+
+FORMATO PRODOTTI:
+Quando consigli un prodotto, usa ESATTAMENTE questo formato:
+[PRODOTTO: nome-prodotto-handle]
+Dove 'nome-prodotto-handle' è l'ID del prodotto (es: letto-montessori-casetta-baldacchino-zeropiu)
+
+Esempio:
+Per un bambino di 3 anni ti consiglio:
+[PRODOTTO: letto-montessori-casetta-baldacchino-zeropiu]
+Questo letto è perfetto perché...
+
+IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
 
     // Se l'utente chiede prodotti, aggiungiamo i dati reali
     if (hasProductQuery) {
@@ -217,8 +231,13 @@ const Chat = ({
           });
           
           if (data.success && data.products && data.products.length > 0) {
-            const productsInfo = data.products.slice(0, 6).map(product => 
-              `**${product.name}**: ${product.price} - ${product.description.substring(0, 80)}...`
+            const productsInfo = data.products.map(product => 
+              `ID: ${product.id}
+Nome: ${product.name}
+Prezzo: ${product.price}
+Descrizione: ${product.description.substring(0, 100)}...
+Disponibile: ${product.inStock ? 'Sì' : 'No'}
+---`
             ).join('\n');
             
             systemInstructions += `
@@ -226,7 +245,11 @@ const Chat = ({
 PRODOTTI NABÈ DISPONIBILI (dati reali e aggiornati):
 ${productsInfo}
 
-⚡ IMPORTANTE: USA QUESTI DATI REALI per rispondere. Menziona prezzi specifici e nomi esatti dei prodotti.`;
+⚡ IMPORTANTE: 
+- USA QUESTI DATI REALI per rispondere
+- Menziona prezzi specifici e nomi esatti dei prodotti
+- Quando consigli un prodotto, usa [PRODOTTO: id] dove 'id' è l'ID del prodotto sopra
+- Esempio: [PRODOTTO: ${data.products[0].id}]`;
             console.log(`✅ [AI] Added ${data.products.length} real products to AI context`);
           } else {
             console.log('⚠️ [AI] No products found in API response');
@@ -426,7 +449,21 @@ PRODOTTI NABÈ:
   // Funzione per estrarre e fetchare prodotti dal testo dell'AI
   const extractAndFetchProducts = async (text: string) => {
     try {
-      console.log('🔍 Searching for products in text:', text.substring(0, 100) + '...');
+      console.log('🔍 Searching for [PRODOTTO: id] tags in text...');
+      
+      // Cerca tag [PRODOTTO: id] nel testo
+      const productTagRegex = /\[PRODOTTO:\s*([^\]]+)\]/gi;
+      const matches = [...text.matchAll(productTagRegex)];
+      
+      if (matches.length === 0) {
+        console.log('⚠️ No [PRODOTTO: id] tags found in AI response');
+        return [];
+      }
+      
+      console.log(`🎯 Found ${matches.length} product tags:`, matches.map(m => m[1]));
+      
+      // Estrai gli ID dei prodotti
+      const productIds = matches.map(match => match[1].trim());
       
       // Fetch tutti i prodotti
       const response = await fetch('/api/products?action=list');
@@ -441,45 +478,22 @@ PRODOTTI NABÈ:
         return [];
       }
       
-      console.log(`📊 Total products available: ${data.products.length}`);
-      
-      // Cerca prodotti menzionati nel testo (case insensitive)
-      const textLower = text.toLowerCase();
-      const mentionedProducts = data.products.filter((product: Product) => {
-        const productName = product.name.toLowerCase();
-        
-        // Match diretto del nome completo
-        if (textLower.includes(productName)) {
-          console.log(`✅ Direct match found: ${product.name}`);
-          return true;
-        }
-        
-        // Match parziale: cerca parole chiave significative
-        const keywords = [
-          'montessori', 'dream', 'casetta', 'baldacchino', 
-          'sponde', 'protettive', 'lettino', 'junior',
-          'singolo', 'doppio', 'castello', 'materasso'
-        ];
-        
-        let matchCount = 0;
-        keywords.forEach(keyword => {
-          if (productName.includes(keyword) && textLower.includes(keyword)) {
-            matchCount++;
+      // Trova i prodotti corrispondenti agli ID
+      const foundProducts = productIds
+        .map(id => {
+          const product = data.products.find((p: Product) => p.id === id);
+          if (product) {
+            console.log(`✅ Found product: ${product.name} (${id})`);
+          } else {
+            console.log(`❌ Product not found: ${id}`);
           }
-        });
-        
-        if (matchCount >= 1) {
-          console.log(`✅ Keyword match found (${matchCount} keywords): ${product.name}`);
-          return true;
-        }
-        
-        return false;
-      });
+          return product;
+        })
+        .filter(Boolean); // Rimuovi null/undefined
       
-      console.log(`🎯 Total products matched: ${mentionedProducts.length}`);
+      console.log(`✅ Total products to display: ${foundProducts.length}`);
       
-      // Limita a max 3 prodotti per evitare sovraccarico visivo
-      return mentionedProducts.slice(0, 3);
+      return foundProducts.slice(0, 3); // Max 3 prodotti
     } catch (error) {
       console.error('❌ Error fetching products:', error);
       return [];
