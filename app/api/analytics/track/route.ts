@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { saveEvent } from "../summary/route";
+import { saveEvent } from "@/app/lib/analytics-storage";
 
 const SHOPIFY_STORE_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || 'nabecreation.myshopify.com';
 const SHOPIFY_ADMIN_API_TOKEN = process.env.SHOPIFY_ADMIN_API_TOKEN;

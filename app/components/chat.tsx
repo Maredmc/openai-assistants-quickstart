@@ -83,8 +83,7 @@ const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDecline
                 url={product.url}
                 inStock={product.inStock}
                 onAddToCart={(productId) => {
-                  if (typeof window !== 'undefined') {
-                    const cart = getCart();
+                  try {
                     addToCart({
                       productId: product.id,
                       name: product.name,
@@ -93,13 +92,17 @@ const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDecline
                       url: product.url
                     });
                     
-                    // Aggiorna UI (dovremmo usare un context o state management migliore)
-                    window.dispatchEvent(new Event('cartUpdated'));
-                    
                     // Track analytics
                     trackAddToCart(product.id, product.name, product.price);
                     
+                    // Aggiorna cart count nello stato
+                    const updatedCart = getCart();
+                    setCartCount(getCartItemCount(updatedCart));
+                    
                     alert(`✅ ${product.name} aggiunto al carrello!`);
+                  } catch (error) {
+                    console.error('Errore aggiunta al carrello:', error);
+                    alert('❌ Errore durante l\'aggiunta al carrello');
                   }
                 }}
               />
