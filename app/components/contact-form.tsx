@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { trackContactSubmit } from "../lib/shopify-analytics";
 import styles from "./contact-form.module.css";
 
 interface ContactFormProps {
@@ -61,6 +62,9 @@ export default function ContactForm({ chatHistory, onContactDeclined, showAltern
       const data = await response.json();
 
       if (response.ok) {
+        // Track contatto inviato
+        trackContactSubmit(email, phone);
+        
         setIsSubmitted(true);
         setEmail("");
         setPhone("");

@@ -11,6 +11,7 @@ import { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/ru
 import ContactForm from "./contact-form";
 import ProductCard from "./product-card";
 import { addToCart, getCart, getCartItemCount } from "../lib/cart";
+import { trackAddToCart, trackProductView } from "../lib/shopify-analytics";
 
 type MessageProps = {
   role: "user" | "assistant" | "code";
@@ -20,6 +21,7 @@ type MessageProps = {
   onContactDeclined?: () => void;
   showAlternativeOffer?: boolean;
   products?: any[];
+  onAddToCart?: (product: any) => void;
 };
 
 interface Product {
@@ -36,13 +38,14 @@ const UserMessage = ({ text }: { text: string }) => {
   return <div className={styles.userMessage}>{text}</div>;
 };
 
-const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDeclined, showAlternativeOffer, products }: { 
+const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDeclined, showAlternativeOffer, products, onAddToCart }: { 
   text: string;
   showContactForm?: boolean;
   chatHistory?: Array<{role: string; content: string; timestamp?: string}>;
   onContactDeclined?: () => void;
   showAlternativeOffer?: boolean;
   products?: any[];
+  onAddToCart?: (product: any) => void;
 }) => {
   // Rimuovi i tag [PRODOTTO: id] dal testo visualizzato
   const cleanText = text.replace(/\[PRODOTTO:\s*[^\]]+\]/gi, '').trim();
@@ -66,6 +69,11 @@ const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDecline
       {products && products.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '16px' }}>
           {products.map((product) => {
+            // Track product view quando viene mostrato
+            if (typeof window !== 'undefined') {
+              trackProductView(product.id, product.name);
+            }
+            
             return (
               <ProductCard
                 key={product.id}
@@ -76,24 +84,9 @@ const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDecline
                 image={product.images?.[0]}
                 url={product.url}
                 inStock={product.inStock}
-                onAddToCart={(productId) => {
-                  try {
-                    addToCart({
-                      productId: product.id,
-                      name: product.name,
-                      price: product.price,
-                      image: product.images?.[0] || '/logo_nabè.png',
-                      url: product.url
-                    });
-                    
-                    // Aggiorna cart count nello stato
-                    const updatedCart = getCart();
-                    setCartCount(getCartItemCount(updatedCart));
-                    
-                    alert(`✅ ${product.name} aggiunto al carrello!`);
-                  } catch (error) {
-                    console.error('Errore aggiunta al carrello:', error);
-                    alert('❌ Errore durante l\'aggiunta al carrello');
+                onAddToCart={() => {
+                  if (onAddToCart) {
+                    onAddToCart(product);
                   }
                 }}
               />
@@ -161,6 +154,7 @@ const Message = ({ role, text, showContactForm, chatHistory, onContactDeclined, 
         onContactDeclined={onContactDeclined}
         showAlternativeOffer={showAlternativeOffer}
         products={products}
+        onAddToCart={onAddToCart}
       />;
     case "code":
       return <CodeMessage text={text} />;
@@ -173,10 +167,12 @@ type ChatProps = {
   functionCallHandler?: (
     toolCall: RequiredActionFunctionToolCall
   ) => Promise<string>;
+  onCartUpdate?: () => void;
 };
 
 const Chat = ({
   functionCallHandler = () => Promise.resolve(""),
+  onCartUpdate,
 }: ChatProps) => {
   const [userInput, setUserInput] = useState("");
   const [messages, setMessages] = useState([]);
@@ -559,21 +555,35 @@ PRODOTTI NABÈ:
   };
 
   // Gestisci aggiunta al carrello
-  const handleAddToCart = (productId: string, productName: string, productPrice: string, productImage: string, productUrl: string) => {
-    addToCart({
-      productId,
-      name: productName,
-      price: productPrice,
-      image: productImage,
-      url: productUrl
-    });
-    
-    // Aggiorna count
-    const cart = getCart();
-    setCartCount(getCartItemCount(cart));
-    
-    // Mostra notifica
-    alert(`✅ ${productName} aggiunto al carrello!`);
+  const handleAddToCart = (product: any) => {
+    try {
+      addToCart({
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.images?.[0] || '/logo_nabè.png',
+        url: product.url
+      });
+      
+      // Aggiorna count locale
+      const cart = getCart();
+      setCartCount(getCartItemCount(cart));
+      
+      // Notifica parent component
+      if (onCartUpdate) {
+        onCartUpdate();
+      }
+      
+      // Track analytics Shopify
+      trackAddToCart(product.id, product.name, 1);
+      
+      // Mostra notifica
+      console.log('✅ Prodotto aggiunto al carrello:', product.name);
+      alert(`✅ ${product.name} aggiunto al carrello!`);
+    } catch (error) {
+      console.error('❌ Errore aggiunta al carrello:', error);
+      alert('❌ Errore durante l\'aggiunta al carrello');
+    }
   };
 
   const annotateLastMessage = (annotations) => {
@@ -652,6 +662,7 @@ PRODOTTI NABÈ:
               onContactDeclined={handleContactDeclined}
               showAlternativeOffer={shouldShowAlternative}
               products={msg.products}
+              onAddToCart={handleAddToCart}
             />
           );
         })}
