@@ -142,7 +142,7 @@ const CodeMessage = ({ text }: { text: string }) => {
   );
 };
 
-const Message = ({ role, text, showContactForm, chatHistory, onContactDeclined, showAlternativeOffer, products }: MessageProps) => {
+const Message = ({ role, text, showContactForm, chatHistory, onContactDeclined, showAlternativeOffer, products, onAddToCart }: MessageProps) => {
   switch (role) {
     case "user":
       return <UserMessage text={text} />;
