@@ -56,6 +56,7 @@ export async function fetchShopifyProducts(forceRefresh = false): Promise<Produc
   }
 
   console.log('🛍️ Fetching products from Shopify API...');
+  console.log('📋 Filters: status=active, published_status=published (Online Store only)');
 
   if (!SHOPIFY_ADMIN_API_TOKEN) {
     console.error('❌ SHOPIFY_ADMIN_API_TOKEN not configured');
@@ -163,13 +164,15 @@ function buildApiUrl(pageInfo: string | null, status?: string): string {
       limit: '250'
     });
     if (status) params.set('status', status);
+    params.set('published_status', 'published'); // Mantieni il filtro anche nelle pagine successive
     return `${baseUrl}?${params.toString()}`;
   }
   
   const params = new URLSearchParams({ limit: '250' });
-  // Di default prendi solo prodotti active
+  // Di default prendi solo prodotti active E pubblicati su Online Store
   const productStatus = status || 'active';
   params.set('status', productStatus);
+  params.set('published_status', 'published'); // Solo prodotti pubblicati su Online Store
   return `${baseUrl}?${params.toString()}`;
 }
 
@@ -202,6 +205,12 @@ function extractPageInfo(url: string): string | null {
  */
 function convertShopifyProduct(shopifyProduct: ShopifyProduct): Product | null {
   try {
+    // Verifica che il prodotto sia pubblicato
+    if (!shopifyProduct.published_at) {
+      console.warn(`⚠️ Product ${shopifyProduct.title} is not published, skipping`);
+      return null;
+    }
+    
     // Prendi la prima variante disponibile per il prezzo
     const firstVariant = shopifyProduct.variants[0];
     

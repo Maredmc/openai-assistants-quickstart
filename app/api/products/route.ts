@@ -63,8 +63,8 @@ export async function GET(request: NextRequest) {
           );
         }
 
-        // Ottieni il limite dalla query (default 100, max 500)
-        const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 500);
+        // Ottieni il limite dalla query (default 500, max 500)
+        const limit = Math.min(parseInt(searchParams.get('limit') || '500'), 500);
         
         return NextResponse.json({
           success: true,
