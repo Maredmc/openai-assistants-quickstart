@@ -92,7 +92,7 @@
 .assistantMessage img {
   max-width: 100%;
   margin: 8px 0px 8px 0px;
-  border-radius: 8px;
+  border-radius: 10px 0 0;
 }
 
 .userMessage {
