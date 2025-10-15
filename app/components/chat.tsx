@@ -265,14 +265,35 @@ IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
           });
           
           if (data.success && data.products && data.products.length > 0) {
-            const productsInfo = data.products.map(product => 
-              `ID: ${product.id}
+            const productsInfo = data.products.map(product => {
+              let info = `ID: ${product.id}
 Nome: ${product.name}
-Prezzo: ${product.price}
+Prezzo base: ${product.price}
 Descrizione: ${product.description.substring(0, 100)}...
-Disponibile: ${product.inStock ? 'Sì' : 'No'}
----`
-            ).join('\n');
+Disponibile: ${product.inStock ? 'Sì' : 'No'}`;
+              
+              // Aggiungi informazioni sulle varianti se esistono
+              if (product.variants && product.variants.length > 1) {
+                info += `
+
+VARIANTI DISPONIBILI (${product.variants.length}):`;
+                product.variants.forEach((variant, idx) => {
+                  info += `
+${idx + 1}. ${variant.title}
+   - Prezzo: ${variant.price}
+   - Disponibile: ${variant.available ? 'Sì' : 'No'}
+   - SKU: ${variant.sku}
+   - Link: ${variant.url}`;
+                  if (variant.image) {
+                    info += `
+   - Immagine: ${variant.image}`;
+                  }
+                });
+              }
+              
+              return info + '
+---';
+            }).join('\n');
             
             systemInstructions += `
 
@@ -283,7 +304,16 @@ ${productsInfo}
 - USA QUESTI DATI REALI per rispondere
 - Menziona prezzi specifici e nomi esatti dei prodotti
 - Quando consigli un prodotto, usa [PRODOTTO: id] dove 'id' è l'ID del prodotto sopra
-- Esempio: [PRODOTTO: ${data.products[0].id}]`;
+- Esempio: [PRODOTTO: ${data.products[0].id}]
+
+🎯 REGOLE PER LE VARIANTI IN BASE ALL'ETÀ:
+Quando consigli un letto, devi anche consigliare la VARIANTE GIUSTA in base all'età:
+
+**Fino a 3 anni:** Set completo di sponde (tutte le sponde per massima sicurezza)
+**Da 3 a 6 anni:** Set metà superiore letto (testiera + 2 sponde laterali)
+**6 anni e oltre:** Set senza sponde OPPURE set con testiera e pediera
+
+Quando menzioni una variante, descrivi CHIARAMENTE quale configurazione stai consigliando e perché è adatta all'età del bambino.`;
             console.log(`✅ [AI] Added ${data.products.length} real products to AI context`);
           } else {
             console.log('⚠️ [AI] No products found in API response');
