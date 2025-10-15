@@ -69,7 +69,7 @@ export async function fetchShopifyProducts(forceRefresh = false): Promise<Produc
     let pageCount = 0;
 
     // Fetch tutti i prodotti con paginazione
-    while (hasNextPage && pageCount < 10) { // Limite di sicurezza: max 10 pagine
+    while (hasNextPage && pageCount < 20) { // Limite di sicurezza: max 20 pagine (5000 prodotti)
       pageCount++;
       
       const url = buildApiUrl(pageInfo);
@@ -154,14 +154,23 @@ export async function fetchShopifyProducts(forceRefresh = false): Promise<Produc
 /**
  * Costruisce URL API con paginazione
  */
-function buildApiUrl(pageInfo: string | null): string {
+function buildApiUrl(pageInfo: string | null, status?: string): string {
   const baseUrl = `https://${SHOPIFY_STORE_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}/products.json`;
   
   if (pageInfo) {
-    return `${baseUrl}?page_info=${pageInfo}&limit=250`;
+    const params = new URLSearchParams({
+      page_info: pageInfo,
+      limit: '250'
+    });
+    if (status) params.set('status', status);
+    return `${baseUrl}?${params.toString()}`;
   }
   
-  return `${baseUrl}?limit=250&status=active`;
+  const params = new URLSearchParams({ limit: '250' });
+  // Di default prendi solo prodotti active
+  const productStatus = status || 'active';
+  params.set('status', productStatus);
+  return `${baseUrl}?${params.toString()}`;
 }
 
 /**

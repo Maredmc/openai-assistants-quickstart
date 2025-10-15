@@ -63,11 +63,15 @@ export async function GET(request: NextRequest) {
           );
         }
 
+        // Ottieni il limite dalla query (default 100, max 500)
+        const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 500);
+        
         return NextResponse.json({
           success: true,
-          products: products.slice(0, 50), // Limita a 50 per performance
+          products: products.slice(0, limit),
           totalProducts: allProductsData.totalProducts,
           filteredProducts: products.length,
+          returnedProducts: Math.min(products.length, limit),
           category: category || 'all',
           lastSync: allProductsData.lastSync
         });
