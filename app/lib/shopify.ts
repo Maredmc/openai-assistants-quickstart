@@ -1,4 +1,4 @@
-import { Product, ProductsData, ProductVariant } from './types';
+import { Product, ProductsData } from './types';
 
 // Configurazione Shopify
 const SHOPIFY_STORE_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || 'nabecreation.myshopify.com';
@@ -8,99 +8,6 @@ const SHOPIFY_API_VERSION = '2024-10';
 // Cache
 const CACHE_DURATION = 60 * 60 * 1000; // 1 ora
 let productsCache: ProductsData | null = null;
-
-// Flag per usare GraphQL invece di REST
-const USE_GRAPHQL = true;
-
-/**
- * Interfacce GraphQL
- */
-interface GraphQLProduct {
-  id: string;
-  handle: string;
-  title: string;
-  description: string;
-  productType: string;
-  publishedAt: string;
-  updatedAt: string;
-  status: string;
-  variants: {
-    edges: Array<{
-      node: {
-        id: string;
-        title: string;
-        price: string;
-        compareAtPrice?: string;
-        sku: string;
-        inventoryQuantity: number;
-        availableForSale: boolean;
-        image?: {
-          url: string;
-          altText?: string;
-        };
-      };
-    }>;
-  };
-  images: {
-    edges: Array<{
-      node: {
-        url: string;
-        altText?: string;
-      };
-    }>;
-  };
-}
-
-/**
- * Query GraphQL per ottenere prodotti con varianti e immagini
- */
-const PRODUCTS_QUERY = `
-  query getProducts($first: Int!, $after: String, $query: String) {
-    products(first: $first, after: $after, query: $query) {
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
-      edges {
-        node {
-          id
-          handle
-          title
-          description
-          productType
-          publishedAt
-          updatedAt
-          status
-          variants(first: 250) {
-            edges {
-              node {
-                id
-                title
-                price
-                compareAtPrice
-                sku
-                inventoryQuantity
-                availableForSale
-                image {
-                  url
-                  altText
-                }
-              }
-            }
-          }
-          images(first: 250) {
-            edges {
-              node {
-                url
-                altText
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
 
 /**
  * Interfacce Shopify REST API
@@ -138,138 +45,6 @@ interface ShopifyImage {
 }
 
 /**
- * Fetch prodotti usando GraphQL
- */
-async function fetchProductsGraphQL(): Promise<Product[]> {
-  console.log('🔷 Fetching products using GraphQL...');
-  
-  const products: Product[] = [];
-  let hasNextPage = true;
-  let cursor: string | null = null;
-  let pageCount = 0;
-
-  while (hasNextPage && pageCount < 20) {
-    pageCount++;
-    
-    const variables: any = {
-      first: 250,
-      query: 'status:active AND published_status:published'
-    };
-    
-    if (cursor) {
-      variables.after = cursor;
-    }
-
-    try {
-      const response = await fetch(
-        `https://${SHOPIFY_STORE_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': SHOPIFY_ADMIN_API_TOKEN!,
-          },
-          body: JSON.stringify({
-            query: PRODUCTS_QUERY,
-            variables,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`GraphQL API error: ${response.status}`);
-      }
-
-      const { data, errors } = await response.json();
-
-      if (errors) {
-        console.error('❌ GraphQL errors:', errors);
-        throw new Error('GraphQL query failed');
-      }
-
-      const edges = data.products.edges;
-      console.log(`✅ Fetched ${edges.length} products from GraphQL page ${pageCount}`);
-
-      for (const edge of edges) {
-        const product = convertGraphQLProduct(edge.node);
-        if (product) {
-          products.push(product);
-        }
-      }
-
-      hasNextPage = data.products.pageInfo.hasNextPage;
-      cursor = data.products.pageInfo.endCursor;
-
-      if (hasNextPage) {
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-    } catch (error) {
-      console.error('❌ GraphQL fetch error:', error);
-      throw error;
-    }
-  }
-
-  console.log(`✅ Total products fetched via GraphQL: ${products.length}`);
-  return products;
-}
-
-/**
- * Converte un prodotto GraphQL nel formato interno
- */
-function convertGraphQLProduct(gqlProduct: GraphQLProduct): Product | null {
-  try {
-    if (!gqlProduct.publishedAt) {
-      console.warn(`⚠️ Product ${gqlProduct.title} is not published, skipping`);
-      return null;
-    }
-
-    // Estrai tutte le immagini
-    const images = gqlProduct.images.edges.map(edge => edge.node.url);
-
-    // Converti varianti
-    const variants: ProductVariant[] = gqlProduct.variants.edges.map(edge => {
-      const variantNode = edge.node;
-      const variantId = variantNode.id.split('/').pop() || variantNode.id;
-      
-      return {
-        id: variantId,
-        title: variantNode.title,
-        price: formatPrice(variantNode.price),
-        compareAtPrice: variantNode.compareAtPrice ? formatPrice(variantNode.compareAtPrice) : undefined,
-        sku: variantNode.sku,
-        inventoryQuantity: variantNode.inventoryQuantity,
-        available: variantNode.availableForSale,
-        image: variantNode.image?.url,
-        url: `https://nabecreation.com/products/${gqlProduct.handle}?variant=${variantId}`
-      };
-    });
-
-    // Determina disponibilità generale
-    const inStock = variants.some(v => v.inventoryQuantity > 0);
-
-    // Prendi prezzo della prima variante
-    const firstVariant = variants[0];
-    const price = firstVariant ? firstVariant.price : 'Prezzo su richiesta';
-
-    return {
-      id: gqlProduct.handle,
-      url: `https://nabecreation.com/products/${gqlProduct.handle}`,
-      name: gqlProduct.title,
-      price,
-      description: cleanHtmlDescription(gqlProduct.description),
-      images,
-      category: gqlProduct.productType || 'Prodotti',
-      inStock,
-      variants,
-      lastUpdated: new Date(gqlProduct.updatedAt)
-    };
-  } catch (error) {
-    console.error(`❌ Error converting GraphQL product:`, error);
-    return null;
-  }
-}
-
-/**
  * Fetch prodotti da Shopify Admin API
  */
 export async function fetchShopifyProducts(forceRefresh = false): Promise<ProductsData> {
@@ -280,32 +55,15 @@ export async function fetchShopifyProducts(forceRefresh = false): Promise<Produc
     return productsCache;
   }
 
+  console.log('🛍️ Fetching products from Shopify API...');
+  console.log('📋 Filters: status=active, published_status=published (Online Store only)');
+
   if (!SHOPIFY_ADMIN_API_TOKEN) {
     console.error('❌ SHOPIFY_ADMIN_API_TOKEN not configured');
     return getFallbackProducts();
   }
 
   try {
-    // Usa GraphQL se il flag è attivo
-    if (USE_GRAPHQL) {
-      console.log('🛍️ Fetching products using GraphQL API...');
-      console.log('📋 Filters: status=active, published_status=published (Online Store only)');
-      
-      const products = await fetchProductsGraphQL();
-      
-      const result: ProductsData = {
-        products,
-        lastSync: new Date(),
-        totalProducts: products.length
-      };
-      
-      productsCache = result;
-      return result;
-    }
-    
-    // Altrimenti usa REST API (fallback)
-    console.log('🛍️ Fetching products from Shopify REST API...');
-    console.log('📋 Filters: status=active, published_status=published (Online Store only)');
     const products: Product[] = [];
     let hasNextPage = true;
     let pageInfo: string | null = null;

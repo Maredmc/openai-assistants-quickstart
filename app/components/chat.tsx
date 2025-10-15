@@ -265,34 +265,14 @@ IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
           });
           
           if (data.success && data.products && data.products.length > 0) {
-            const productsInfo = data.products.map(product => {
-              let info = `ID: ${product.id}
+            const productsInfo = data.products.map(product => 
+              `ID: ${product.id}
 Nome: ${product.name}
-Prezzo base: ${product.price}
+Prezzo: ${product.price}
 Descrizione: ${product.description.substring(0, 100)}...
-Disponibile: ${product.inStock ? 'Sì' : 'No'}`;
-              
-              // Aggiungi informazioni sulle varianti se esistono
-              if (product.variants && product.variants.length > 1) {
-                info += `
-
-VARIANTI DISPONIBILI (${product.variants.length}):`;
-                product.variants.forEach((variant, idx) => {
-                  info += `
-${idx + 1}. ${variant.title}
-   - Prezzo: ${variant.price}
-   - Disponibile: ${variant.available ? 'Sì' : 'No'}
-   - SKU: ${variant.sku}
-   - Link: ${variant.url}`;
-                  if (variant.image) {
-                    info += `
-   - Immagine: ${variant.image}`;
-                  }
-                });
-              }
-              
-              return info + '\n---';
-            }).join('\n');
+Disponibile: ${product.inStock ? 'Sì' : 'No'}
+---`
+            ).join('\n');
             
             systemInstructions += `
 
