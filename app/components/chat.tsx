@@ -291,8 +291,7 @@ ${idx + 1}. ${variant.title}
                 });
               }
               
-              return info + '
----';
+              return info + '\n---';
             }).join('\n');
             
             systemInstructions += `
