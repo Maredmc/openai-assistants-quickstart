@@ -53,11 +53,11 @@
 .productLink {
 display: inline-block;
     background: #79aea3;
-    color: #fff;
+    color: #fff !important;
     padding: 10px 20px;
     border-radius: 16px;
-    text-decoration: none;
-    font-weight: 600;
+    text-decoration: none !important;
+    font-weight: 600 !important;
     margin-top: 12px;
     transition: background .2s 
 ease;
