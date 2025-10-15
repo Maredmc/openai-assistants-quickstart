@@ -106,6 +106,53 @@
   color: #1f2937;
 }
 
+/* Stili per i paragrafi nei messaggi dell'assistente */
+.assistantMessage p {
+  margin: 16px 0;
+  line-height: 1.7;
+  color: #374151;
+}
+
+.assistantMessage p:first-of-type {
+  margin-top: 0;
+}
+
+.assistantMessage p:last-of-type {
+  margin-bottom: 0;
+}
+
+/* Stili per il grassetto nei messaggi dell'assistente */
+.assistantMessage strong {
+  font-weight: 700;
+  color: #79aea3;
+  font-size: 1.05em;
+}
+
+/* Stili per i link nei messaggi dell'assistente */
+.assistantMessage a {
+  color: #79aea3;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.assistantMessage a:hover {
+  color: #5a9d8f;
+}
+
+/* Nascondi le liste puntate nei messaggi dell'assistente */
+.assistantMessage ul,
+.assistantMessage ol {
+  display: none !important;
+}
+
+/* Se ci sono liste, converti gli elementi in paragrafi visivamente */
+.assistantMessage li {
+  display: block;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+
 .assistantHeader {
   display: flex;
   align-items: center;

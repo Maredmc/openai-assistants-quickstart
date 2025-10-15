@@ -217,9 +217,19 @@ const Chat = ({
 
     let systemInstructions = `ISTRUZIONI IMPORTANTI:
 - Rispondi in modo CONCISO e DIRETTO
-- Quando consigli prodotti usa ELENCHI PUNTATI con GRASSETTI sui punti principali
-- Massimo 3-4 frasi per spiegazione, poi vai al sodo
+- NON usare MAI elenchi puntati o numerati
+- Suddividi le informazioni in paragrafi separati e distinti
+- Inizia ogni paragrafo con il concetto principale in GRASSETTO (usa **testo** per il grassetto)
+- Massimo 2-3 frasi per paragrafo
+- Usa una riga vuota tra un paragrafo e l'altro per migliorare la leggibilità
 - Evita giri di parole, sii pratico e utile
+
+ESEMPIO DI FORMATTAZIONE CORRETTA:
+**Dimensioni ideali:** Per un bambino di 3 anni, ti consiglio un letto 70x140 cm. Questa misura garantisce comfort e sicurezza.
+
+**Materiale consigliato:** Il legno massello è perfetto perché è naturale e resistente. Durerà molti anni.
+
+**Sicurezza:** Le sponde rimovibili sono essenziali a questa età. Proteggono senza limitare l'autonomia.
 
 FORMATO PRODOTTI:
 Quando consigli un prodotto, usa ESATTAMENTE questo formato:
@@ -227,9 +237,9 @@ Quando consigli un prodotto, usa ESATTAMENTE questo formato:
 Dove 'nome-prodotto-handle' è l'ID del prodotto (es: letto-montessori-casetta-baldacchino-zeropiu)
 
 Esempio:
-Per un bambino di 3 anni ti consiglio:
+**Letto perfetto per te:** Ti consiglio questo modello specifico.
 [PRODOTTO: letto-montessori-casetta-baldacchino-zeropiu]
-Questo letto è perfetto perché...
+È ideale perché...
 
 IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
 
