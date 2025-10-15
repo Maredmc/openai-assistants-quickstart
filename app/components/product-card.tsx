@@ -53,34 +53,19 @@ const ProductCard = ({
           <span className={styles.productBadge}>Non disponibile</span>
         )}
         
-        {inStock && (
-          <span className={styles.productBadge}>Disponibile</span>
-        )}
-        
-        <div className={styles.buttonGroup}>
-          <a 
-            href={url} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className={styles.productLink}
-            onClick={(e) => {
-              if (!inStock) {
-                e.preventDefault();
-              }
-            }}
-          >
-            {inStock ? 'Vedi prodotto' : 'Non disponibile'}
-          </a>
-          
-          {inStock && onAddToCart && (
-            <button 
-              className={styles.addToCartButton}
-              onClick={() => onAddToCart(id)}
-            >
-              🛒 Aggiungi al carrello
-            </button>
-          )}
-        </div>
+        <a 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className={styles.productLink}
+          onClick={(e) => {
+            if (!inStock) {
+              e.preventDefault();
+            }
+          }}
+        >
+          {inStock ? 'Vedi prodotto' : 'Non disponibile'}
+        </a>
       </div>
     </div>
   );
