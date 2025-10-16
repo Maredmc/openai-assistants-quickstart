@@ -12,6 +12,7 @@ import ContactForm from "./contact-form";
 import ProductCard from "./product-card";
 import { addToCart, getCart, getCartItemCount } from "../lib/cart";
 import { trackAddToCart, trackProductView } from "../lib/shopify-analytics";
+import { performanceMonitor } from "../utils/performance-monitor";
 
 type MessageProps = {
   role: "user" | "assistant" | "code";
@@ -172,15 +173,19 @@ type ChatProps = {
 const Chat = ({
   functionCallHandler = () => Promise.resolve(""),
 }: ChatProps) => {
+  // Stati consolidati per performance
   const [userInput, setUserInput] = useState("");
   const [messages, setMessages] = useState([]);
-  const [inputDisabled, setInputDisabled] = useState(false);
+  const [chatState, setChatState] = useState({
+    inputDisabled: false,
+    isLoading: false,
+    hasAssistantResponded: false,
+    contactDeclined: false,
+    showAlternativeOffer: false
+  });
   const [threadId, setThreadId] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasAssistantResponded, setHasAssistantResponded] = useState(false);
-  const [contactDeclined, setContactDeclined] = useState(false);
-  const [showAlternativeOffer, setShowAlternativeOffer] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
 
   // Inizializza cart count
   useEffect(() => {
@@ -195,7 +200,7 @@ const Chat = ({
   
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isLoading]);
+  }, [messages, chatState.isLoading]);
 
   useEffect(() => {
     const createThread = async () => {
@@ -209,7 +214,10 @@ const Chat = ({
   }, []);
 
   const sendMessage = async (text) => {
-    // Proviamo a rilevare se l'utente sta chiedendo prodotti specifici
+    // Inizia monitoraggio performance
+    const startTime = performanceMonitor.startChatResponse();
+    setResponseStartTime(startTime);
+    // Rileva query prodotti
     const productKeywords = ['letto', 'prodotto', 'prezzo', 'costo', 'catalogo', 'modello', 'disponibilità', 'montessori', 'bambino', 'sponde', 'materasso'];
     const hasProductQuery = productKeywords.some(keyword => 
       text.toLowerCase().includes(keyword)
@@ -243,80 +251,7 @@ Esempio:
 
 IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
 
-    // Se l'utente chiede prodotti, aggiungiamo i dati reali
-    if (hasProductQuery) {
-      try {
-        console.log('🛍️ [AI] User asking about products, fetching data...');
-        const response = await fetch('/api/products?action=list', {
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        console.log('📊 [AI] Products API response status:', response.status);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('📋 [AI] Products API data:', {
-            success: data.success,
-            productsCount: data.products?.length || 0,
-            totalProducts: data.totalProducts,
-            lastSync: data.lastSync
-          });
-          
-          if (data.success && data.products && data.products.length > 0) {
-            const productsInfo = data.products.map(product => 
-              `ID: ${product.id}
-Nome: ${product.name}
-Prezzo: ${product.price}
-Descrizione: ${product.description.substring(0, 100)}...
-Disponibile: ${product.inStock ? 'Sì' : 'No'}
----`
-            ).join('\n');
-            
-            systemInstructions += `
-
-PRODOTTI NABÈ DISPONIBILI (dati reali e aggiornati):
-${productsInfo}
-
-⚡ IMPORTANTE: 
-- USA QUESTI DATI REALI per rispondere
-- Menziona prezzi specifici e nomi esatti dei prodotti
-- Quando consigli un prodotto, usa [PRODOTTO: id] dove 'id' è l'ID del prodotto sopra
-- Esempio: [PRODOTTO: ${data.products[0].id}]
-
-🎯 REGOLE PER LE VARIANTI IN BASE ALL'ETÀ:
-Quando consigli un letto, devi anche consigliare la VARIANTE GIUSTA in base all'età:
-
-**Fino a 3 anni:** Set completo di sponde (tutte le sponde per massima sicurezza)
-**Da 3 a 6 anni:** Set metà superiore letto (testiera + 2 sponde laterali)
-**6 anni e oltre:** Set senza sponde OPPURE set con testiera e pediera
-
-Quando menzioni una variante, descrivi CHIARAMENTE quale configurazione stai consigliando e perché è adatta all'età del bambino.`;
-            console.log(`✅ [AI] Added ${data.products.length} real products to AI context`);
-          } else {
-            console.log('⚠️ [AI] No products found in API response');
-            // Fallback con prodotti base
-            systemInstructions += `
-
-PRODOTTI NABÈ (informazioni base):
-**Letto Montessori zero+ Dream**: da €590 - Letto evolutivo con casetta/baldacchino
-**Sponde Protettive zero+**: da €120 - Sponde modulari per sicurezza bambini`;
-          }
-        } else {
-          console.error('❌ [AI] Products API failed:', response.status, response.statusText);
-        }
-      } catch (error) {
-        console.error('❌ [AI] Error fetching products:', error);
-        // Fallback con informazioni base
-        systemInstructions += `
-
-PRODOTTI NABÈ:
-**Letto Montessori zero+ Dream**: da €590 - Letto evolutivo montessoriano
-**Sponde Protettive zero+**: da €120 - Accessori di sicurezza`;
-      }
-    }
-
+    // INVIO IMMEDIATO - Non bloccare per fetch prodotti
     systemInstructions += `\n\nDomanda utente: ${text}`;
     
     const response = await fetch(
@@ -330,6 +265,32 @@ PRODOTTI NABÈ:
     );
     const stream = AssistantStream.fromReadableStream(response.body);
     handleReadableStream(stream);
+
+    // FETCH PRODOTTI IN BACKGROUND - Non bloccante
+    if (hasProductQuery) {
+      fetchProductsInBackground();
+    }
+  };
+
+  // Fetch prodotti in background senza bloccare l'UI
+  const fetchProductsInBackground = async () => {
+    try {
+      console.log('🛍️ [Background] Fetching products for future responses...');
+      const response = await fetch('/api/products?action=list', {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`✅ [Background] Products cached: ${data.products?.length || 0} items`);
+        performanceMonitor.recordCacheHit();
+      } else {
+        performanceMonitor.recordCacheMiss();
+      }
+    } catch (error) {
+      console.warn('⚠️ [Background] Products fetch failed (non-blocking):', error.message);
+      performanceMonitor.recordApiError('products', error.message);
+    }
   };
 
   const submitActionResult = async (runId, toolCallOutputs) => {
@@ -361,14 +322,13 @@ PRODOTTI NABÈ:
     const hasRefused = refusalKeywords.some(keyword => userInputLower.includes(keyword));
     const wantsContact = contactKeywords.some(keyword => userInputLower.includes(keyword));
     
-    if (hasRefused && !contactDeclined) {
-      setShowAlternativeOffer(true);
+    if (hasRefused && !chatState.contactDeclined) {
+      setChatState(prev => ({ ...prev, showAlternativeOffer: true }));
     }
     
     // Se l'utente chiede esplicitamente di essere contattato, riattiva il sistema
-    if (wantsContact && contactDeclined) {
-      setContactDeclined(false);
-      setShowAlternativeOffer(false);
+    if (wantsContact && chatState.contactDeclined) {
+      setChatState(prev => ({ ...prev, contactDeclined: false, showAlternativeOffer: false }));
     }
     
     sendMessage(userInput);
@@ -377,15 +337,14 @@ PRODOTTI NABÈ:
       { role: "user", text: userInput },
     ]);
     setUserInput("");
-    setInputDisabled(true);
-    setIsLoading(true);
+    setChatState(prev => ({ ...prev, inputDisabled: true, isLoading: true }));
     scrollToBottom();
   };
 
   const handleTextCreated = () => {
     appendMessage("assistant", "");
-    if (!hasAssistantResponded) {
-      setHasAssistantResponded(true);
+    if (!chatState.hasAssistantResponded) {
+      setChatState(prev => ({ ...prev, hasAssistantResponded: true }));
     }
   };
 
@@ -424,13 +383,18 @@ PRODOTTI NABÈ:
         return { output: result, tool_call_id: toolCall.id };
       })
     );
-    setInputDisabled(true);
+    setChatState(prev => ({ ...prev, inputDisabled: true }));
     submitActionResult(runId, toolCallOutputs);
   };
 
   const handleRunCompleted = async () => {
-    setInputDisabled(false);
-    setIsLoading(false);
+    // Completa monitoraggio performance
+    if (responseStartTime) {
+      performanceMonitor.endChatResponse(responseStartTime);
+      setResponseStartTime(null);
+    }
+    
+    setChatState(prev => ({ ...prev, inputDisabled: false, isLoading: false }));
     
     // Dopo che l'AI ha finito, cerca prodotti nel messaggio
     // Usiamo setTimeout per eseguire dopo il render
@@ -549,17 +513,15 @@ PRODOTTI NABÈ:
 
   // Funzioni per gestire il rifiuto del contatto
   const handleContactDeclined = () => {
-    setContactDeclined(true);
-    setShowAlternativeOffer(false);
-    // Dopo 3 messaggi dell'utente, riattiva l'offerta alternativa
+    setChatState(prev => ({ ...prev, contactDeclined: true, showAlternativeOffer: false }));
+    // Dopo 10 secondi, riattiva l'offerta alternativa
     setTimeout(() => {
-      setShowAlternativeOffer(true);
-    }, 10000); // 10 secondi dopo, o potresti basarti sul conteggio messaggi
+      setChatState(prev => ({ ...prev, showAlternativeOffer: true }));
+    }, 10000);
   };
 
   const handleShowAlternativeOffer = () => {
-    setShowAlternativeOffer(true);
-    setContactDeclined(false); // Reset per permettere il form
+    setChatState(prev => ({ ...prev, showAlternativeOffer: true, contactDeclined: false }));
   };
 
   // Funzione per convertire i messaggi in formato cronologia chat
@@ -656,13 +618,13 @@ PRODOTTI NABÈ:
         {messages.map((msg, index) => {
           const isLastAssistantMessage = 
             msg.role === 'assistant' && 
-            hasAssistantResponded && 
-            !isLoading && 
+            chatState.hasAssistantResponded && 
+            !chatState.isLoading && 
             index === messages.length - 1;
           
           // Logica per mostrare il form di contatto
-          const shouldShowContactForm = isLastAssistantMessage && !contactDeclined && !showAlternativeOffer;
-          const shouldShowAlternative = isLastAssistantMessage && showAlternativeOffer;
+          const shouldShowContactForm = isLastAssistantMessage && !chatState.contactDeclined && !chatState.showAlternativeOffer;
+          const shouldShowAlternative = isLastAssistantMessage && chatState.showAlternativeOffer;
           
           return (
             <Message 
@@ -679,7 +641,7 @@ PRODOTTI NABÈ:
           );
         })}
         
-        {isLoading && <LoadingMessage />}
+        {chatState.isLoading && <LoadingMessage />}
         
         <div ref={messagesEndRef} />
       </div>
@@ -697,7 +659,7 @@ PRODOTTI NABÈ:
         <button
           type="submit"
           className={styles.button}
-          disabled={inputDisabled}
+          disabled={chatState.inputDisabled}
         >
           Invia
         </button>

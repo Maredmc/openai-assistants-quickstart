@@ -5,9 +5,12 @@ const SHOPIFY_STORE_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || 'nabecreation.m
 const SHOPIFY_ADMIN_API_TOKEN = process.env.SHOPIFY_ADMIN_API_TOKEN;
 const SHOPIFY_API_VERSION = '2024-10';
 
-// Cache
-const CACHE_DURATION = 60 * 60 * 1000; // 1 ora
+// Cache ottimizzata - durata ridotta a 4 ore per dati più freschi
+const CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 ore
+const API_TIMEOUT = 8000; // 8 secondi timeout
 let productsCache: ProductsData | null = null;
+
+// Solo cache in memoria - rimosso localStorage per evitare conflitti
 
 /**
  * Interfacce Shopify REST API
@@ -45,6 +48,29 @@ interface ShopifyImage {
 }
 
 /**
+ * Fetch con timeout per evitare blocchi
+ */
+const fetchWithTimeout = async (url: string, options: RequestInit, timeout = API_TIMEOUT): Promise<Response> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timeout after ${timeout}ms`);
+    }
+    throw error;
+  }
+};
+
+/**
  * Fetch prodotti da Shopify Admin API
  */
 export async function fetchShopifyProducts(forceRefresh = false): Promise<ProductsData> {
@@ -76,7 +102,7 @@ export async function fetchShopifyProducts(forceRefresh = false): Promise<Produc
       const url = buildApiUrl(pageInfo);
       console.log(`📄 Fetching page ${pageCount}: ${url}`);
 
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -137,6 +163,7 @@ export async function fetchShopifyProducts(forceRefresh = false): Promise<Produc
     };
 
     productsCache = result;
+    
     return result;
 
   } catch (error) {
