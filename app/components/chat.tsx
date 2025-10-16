@@ -200,6 +200,7 @@ const Chat = ({
   }, []);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -218,6 +219,20 @@ const Chat = ({
     };
     createThread();
   }, []);
+
+  const adjustInputHeight = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const maxHeight = 180;
+    const minHeight = 44;
+    const next = Math.min(Math.max(el.scrollHeight, minHeight), maxHeight);
+    el.style.height = `${next}px`;
+  };
+
+  useEffect(() => {
+    adjustInputHeight();
+  }, [userInput]);
 
   const sendMessage = async (text) => {
     // Inizia monitoraggio performance
@@ -322,14 +337,22 @@ IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
     handleReadableStream(stream);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!userInput.trim()) return;
-    
+  const handlePrefillQuestion = (text: string) => {
+    setUserInput(text);
+    requestAnimationFrame(() => {
+      adjustInputHeight();
+      inputRef.current?.focus();
+    });
+  };
+
+  const processUserMessage = () => {
+    const outboundText = userInput.trim();
+    if (!outboundText || chatState.inputDisabled) return;
+
     // Controlla se l'utente sta rifiutando di essere contattato
     const refusalKeywords = ['no grazie', 'non voglio', 'non interessato', 'no thanks', 'non ora', 'magari dopo', 'non mi interessa', 'non ho bisogno', 'preferirei di no', 'non adesso'];
     const contactKeywords = ['contatto', 'contattare', 'preventivo', 'modulo', 'email', 'telefono', 'ricontattare', 'chiamare'];
-    const userInputLower = userInput.toLowerCase();
+    const userInputLower = outboundText.toLowerCase();
     const hasRefused = refusalKeywords.some(keyword => userInputLower.includes(keyword));
     const wantsContact = contactKeywords.some(keyword => userInputLower.includes(keyword));
     
@@ -342,14 +365,25 @@ IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
       setChatState(prev => ({ ...prev, contactDeclined: false, showAlternativeOffer: false }));
     }
     
-    sendMessage(userInput);
+    sendMessage(outboundText);
     setMessages((prevMessages) => [
       ...prevMessages,
-      { role: "user", text: userInput },
+      { role: "user", text: outboundText },
     ]);
     setUserInput("");
     setChatState(prev => ({ ...prev, inputDisabled: true, isLoading: true }));
     scrollToBottom();
+    requestAnimationFrame(() => {
+      if (inputRef.current) {
+        inputRef.current.style.height = "auto";
+        adjustInputHeight();
+      }
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    processUserMessage();
   };
 
   const handleTextCreated = () => {
@@ -603,7 +637,7 @@ IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
                 </p>
                 <button
                   onClick={() =>
-                    setUserInput("Ho un bambino di 3 anni, che letto mi consigli?")
+                    handlePrefillQuestion("Ho un bambino di 3 anni, che letto mi consigli?")
                   }
                   className={styles.quickQuestion}
                 >
@@ -611,7 +645,7 @@ IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
                 </button>
                 <button
                   onClick={() =>
-                    setUserInput(
+                    handlePrefillQuestion(
                       "Ho due figli di 4 e 7 anni, cosa mi consigli di fare?"
                     )
                   }
@@ -621,7 +655,7 @@ IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
                 </button>
                 <button
                   onClick={() =>
-                    setUserInput(
+                    handlePrefillQuestion(
                       "Mio figlio ha quasi 5 anni, quali sponde mi consigli?"
                     )
                   }
@@ -631,7 +665,7 @@ IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
                 </button>
                 <button
                   onClick={() =>
-                    setUserInput(
+                    handlePrefillQuestion(
                       "La cameretta è piccola, che dimensioni mi consigli?"
                     )
                   }
@@ -730,11 +764,19 @@ IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
 
       <div className={styles.composer}>
         <form onSubmit={handleSubmit} className={styles.inputForm}>
-          <input
-            type="text"
+          <textarea
+            ref={inputRef}
+            rows={1}
             className={styles.input}
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
+            onInput={adjustInputHeight}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                processUserMessage();
+              }
+            }}
             placeholder="Scrivi il tuo messaggio..."
           />
           <button
