@@ -18,7 +18,7 @@ type MessageProps = {
   role: "user" | "assistant" | "code";
   text: string;
   showContactForm?: boolean;
-  chatHistory?: Array<{role: string; content: string; timestamp?: string}>;
+  chatHistory?: Array<{ role: string; content: string; timestamp?: string }>;
   onContactDeclined?: () => void;
   showAlternativeOffer?: boolean;
   products?: any[];
@@ -35,46 +35,51 @@ interface Product {
   inStock: boolean;
 }
 
-const UserMessage = ({ text }: { text: string }) => {
+const UserBubble = ({ text }: { text: string }) => {
   return <div className={styles.userMessage}>{text}</div>;
 };
 
-const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDeclined, showAlternativeOffer, products, onAddToCart }: { 
+const AssistantBubble = ({
+  text,
+  showContactForm,
+  chatHistory,
+  onContactDeclined,
+  showAlternativeOffer,
+  products,
+  onAddToCart,
+}: {
   text: string;
   showContactForm?: boolean;
-  chatHistory?: Array<{role: string; content: string; timestamp?: string}>;
+  chatHistory?: Array<{ role: string; content: string; timestamp?: string }>;
   onContactDeclined?: () => void;
   showAlternativeOffer?: boolean;
   products?: any[];
   onAddToCart?: (product: any) => void;
 }) => {
   // Rimuovi i tag [PRODOTTO: id] dal testo visualizzato
-  const cleanText = text.replace(/\[PRODOTTO:\s*[^\]]+\]/gi, '').trim();
-  
+  const cleanText = text.replace(/\[PRODOTTO:\s*[^\]]+\]/gi, "").trim();
+
   return (
     <div className={styles.assistantMessage}>
-      <div className={styles.assistantHeader}>
-        <div className={styles.assistantIcon}>
-          <Image 
-            src="/logo_nabè.png" 
-            alt="Logo" 
-            width={20} 
-            height={20}
-          />
-        </div>
-        <span className={styles.assistantLabel}>Assistente</span>
-      </div>
+      <span className={styles.assistantLabel}>Assistente</span>
       <Markdown>{cleanText}</Markdown>
-      
+
       {/* Mostra prodotti consigliati */}
       {products && products.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '16px' }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "16px",
+            marginTop: "16px",
+          }}
+        >
           {products.map((product) => {
             // Track product view quando viene mostrato
-            if (typeof window !== 'undefined') {
+            if (typeof window !== "undefined") {
               trackProductView(product.id, product.name);
             }
-            
+
             return (
               <ProductCard
                 key={product.id}
@@ -107,20 +112,10 @@ const AssistantMessage = ({ text, showContactForm, chatHistory, onContactDecline
   );
 };
 
-const LoadingMessage = () => {
+const LoadingBubble = () => {
   return (
     <div className={styles.assistantMessage}>
-      <div className={styles.assistantHeader}>
-        <div className={`${styles.assistantIcon} ${styles.assistantIconThinking}`}>
-          <Image 
-            src="/logo_nabè.png" 
-            alt="Logo" 
-            width={20} 
-            height={20}
-          />
-        </div>
-        <span className={styles.assistantLabel}>Assistente</span>
-      </div>
+      <span className={styles.assistantLabel}>Assistente</span>
       <div className={styles.thinkingDots}>
         <div className={styles.dot}></div>
         <div className={styles.dot}></div>
@@ -130,7 +125,7 @@ const LoadingMessage = () => {
   );
 };
 
-const CodeMessage = ({ text }: { text: string }) => {
+const CodeBubble = ({ text }: { text: string }) => {
   return (
     <div className={styles.codeMessage}>
       {text.split("\n").map((line, index) => (
@@ -143,22 +138,33 @@ const CodeMessage = ({ text }: { text: string }) => {
   );
 };
 
-const Message = ({ role, text, showContactForm, chatHistory, onContactDeclined, showAlternativeOffer, products, onAddToCart }: MessageProps) => {
+const Message = ({
+  role,
+  text,
+  showContactForm,
+  chatHistory,
+  onContactDeclined,
+  showAlternativeOffer,
+  products,
+  onAddToCart,
+}: MessageProps) => {
   switch (role) {
     case "user":
-      return <UserMessage text={text} />;
+      return <UserBubble text={text} />;
     case "assistant":
-      return <AssistantMessage 
-        text={text} 
-        showContactForm={showContactForm} 
-        chatHistory={chatHistory} 
-        onContactDeclined={onContactDeclined}
-        showAlternativeOffer={showAlternativeOffer}
-        products={products}
-        onAddToCart={onAddToCart}
-      />;
+      return (
+        <AssistantBubble
+          text={text}
+          showContactForm={showContactForm}
+          chatHistory={chatHistory}
+          onContactDeclined={onContactDeclined}
+          showAlternativeOffer={showAlternativeOffer}
+          products={products}
+          onAddToCart={onAddToCart}
+        />
+      );
     case "code":
-      return <CodeMessage text={text} />;
+      return <CodeBubble text={text} />;
     default:
       return null;
   }
@@ -525,10 +531,6 @@ IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
     }, 10000);
   };
 
-  const handleShowAlternativeOffer = () => {
-    setChatState(prev => ({ ...prev, showAlternativeOffer: true, contactDeclined: false }));
-  };
-
   // Funzione per convertire i messaggi in formato cronologia chat
   const getChatHistory = () => {
     return messages.map(msg => ({
@@ -585,90 +587,165 @@ IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
 
   return (
     <div className={styles.chatContainer}>
-      <div className={styles.messages}>
-        {messages.length === 0 && (
-  <div className={styles.welcomeMessage}>
-    <h2>Benvenutə in Nabè</h2>
-    <p>Sono il tuo consulente specializzato per trovare il letto perfetto per il tuo bambino. Insieme creeremo il rifugio dei sogni ideale!</p>
-            <div className={styles.quickQuestions}>
-  <p className={styles.quickQuestionsTitle}>Iniziamo con queste domande:</p>
-  <button 
-    onClick={() => setUserInput("Ho un bambino di 3 anni, che letto mi consigli?")}
-    className={styles.quickQuestion}
-  >
-    Ho un bambino di 3 anni, che letto mi consigli?
-  </button>
-  <button 
-    onClick={() => setUserInput("Ho due figli di 4 e 7 anni, cosa mi consigli di fare?")}
-    className={styles.quickQuestion}
-  >
-    Ho due figli di 4 e 7 anni, cosa mi consigli di fare?
-  </button>
-  <button 
-    onClick={() => setUserInput("Mio figlio ha quasi 5 anni, quali sponde mi consigli?")}
-    className={styles.quickQuestion}
-  >
-    Mio figlio ha quasi 5 anni, quali sponde mi consigli?
-  </button>
-  <button 
-    onClick={() => setUserInput("La cameretta è piccola, che dimensioni mi consigli?")}
-    className={styles.quickQuestion}
-  >
-    La cameretta è piccola, che dimensioni mi consigli?
-  </button>
-</div>
-          </div>
-        )}
-        
-        {messages.map((msg, index) => {
-          const isLastAssistantMessage = 
-            msg.role === 'assistant' && 
-            chatState.hasAssistantResponded && 
-            !chatState.isLoading && 
-            index === messages.length - 1;
-          
-          // Logica per mostrare il form di contatto
-          const shouldShowContactForm = isLastAssistantMessage && !chatState.contactDeclined && !chatState.showAlternativeOffer;
-          const shouldShowAlternative = isLastAssistantMessage && chatState.showAlternativeOffer;
-          
-          return (
-            <Message 
-              key={index} 
-              role={msg.role} 
-              text={msg.text}
-              showContactForm={shouldShowContactForm}
-              chatHistory={shouldShowContactForm ? getChatHistory() : undefined}
-              onContactDeclined={handleContactDeclined}
-              showAlternativeOffer={shouldShowAlternative}
-              products={msg.products}
-              onAddToCart={handleAddToCart}
-            />
-          );
-        })}
-        
-        {chatState.isLoading && <LoadingMessage />}
-        
-        <div ref={messagesEndRef} />
+      <div className={styles.chatBody}>
+        <div className={styles.messages}>
+          {messages.length === 0 && (
+            <div className={styles.welcomeMessage}>
+              <h2>Benvenutə in Nabè</h2>
+              <p>
+                Sono il tuo consulente specializzato per trovare il letto
+                perfetto per il tuo bambino. Insieme creeremo il rifugio dei
+                sogni ideale!
+              </p>
+              <div className={styles.quickQuestions}>
+                <p className={styles.quickQuestionsTitle}>
+                  Iniziamo con queste domande:
+                </p>
+                <button
+                  onClick={() =>
+                    setUserInput("Ho un bambino di 3 anni, che letto mi consigli?")
+                  }
+                  className={styles.quickQuestion}
+                >
+                  Ho un bambino di 3 anni, che letto mi consigli?
+                </button>
+                <button
+                  onClick={() =>
+                    setUserInput(
+                      "Ho due figli di 4 e 7 anni, cosa mi consigli di fare?"
+                    )
+                  }
+                  className={styles.quickQuestion}
+                >
+                  Ho due figli di 4 e 7 anni, cosa mi consigli di fare?
+                </button>
+                <button
+                  onClick={() =>
+                    setUserInput(
+                      "Mio figlio ha quasi 5 anni, quali sponde mi consigli?"
+                    )
+                  }
+                  className={styles.quickQuestion}
+                >
+                  Mio figlio ha quasi 5 anni, quali sponde mi consigli?
+                </button>
+                <button
+                  onClick={() =>
+                    setUserInput(
+                      "La cameretta è piccola, che dimensioni mi consigli?"
+                    )
+                  }
+                  className={styles.quickQuestion}
+                >
+                  La cameretta è piccola, che dimensioni mi consigli?
+                </button>
+              </div>
+            </div>
+          )}
+
+          {messages.map((msg, index) => {
+            const isAssistant = msg.role === "assistant";
+            const isUser = msg.role === "user";
+            const rowClass = [
+              styles.messageRow,
+              isAssistant ? styles.assistantRow : "",
+              isUser ? styles.userRow : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+
+            const isLastAssistantMessage =
+              isAssistant &&
+              chatState.hasAssistantResponded &&
+              !chatState.isLoading &&
+              index === messages.length - 1;
+
+            // Logica per mostrare il form di contatto
+            const shouldShowContactForm =
+              isLastAssistantMessage &&
+              !chatState.contactDeclined &&
+              !chatState.showAlternativeOffer;
+            const shouldShowAlternative =
+              isLastAssistantMessage && chatState.showAlternativeOffer;
+
+            return (
+              <div key={index} className={rowClass}>
+                {isAssistant && (
+                  <div className={styles.avatarAssistant}>
+                    <Image
+                      src="/logo_nabè.png"
+                      alt="Assistente Nabè"
+                      width={28}
+                      height={28}
+                    />
+                  </div>
+                )}
+                {isUser && (
+                  <div className={styles.avatarUser} aria-hidden="true">
+                    Tu
+                  </div>
+                )}
+                {!isAssistant && !isUser && (
+                  <div className={styles.avatarCode} aria-hidden="true">
+                    {"</>"}
+                  </div>
+                )}
+                <div className={styles.messageBubble}>
+                  <Message
+                    role={msg.role}
+                    text={msg.text}
+                    showContactForm={shouldShowContactForm}
+                    chatHistory={
+                      shouldShowContactForm ? getChatHistory() : undefined
+                    }
+                    onContactDeclined={handleContactDeclined}
+                    showAlternativeOffer={shouldShowAlternative}
+                    products={msg.products}
+                    onAddToCart={handleAddToCart}
+                  />
+                </div>
+              </div>
+            );
+          })}
+
+          {chatState.isLoading && (
+            <div className={`${styles.messageRow} ${styles.assistantRow}`}>
+              <div className={styles.avatarAssistant}>
+                <Image
+                  src="/logo_nabè.png"
+                  alt="Assistente Nabè"
+                  width={28}
+                  height={28}
+                />
+              </div>
+              <div className={styles.messageBubble}>
+                <LoadingBubble />
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
       </div>
-      <form
-        onSubmit={handleSubmit}
-        className={`${styles.inputForm} ${styles.clearfix}`}
-      >
-        <input
-          type="text"
-          className={styles.input}
-          value={userInput}
-          onChange={(e) => setUserInput(e.target.value)}
-          placeholder="Scrivi il tuo messaggio..."
-        />
-        <button
-          type="submit"
-          className={styles.button}
-          disabled={chatState.inputDisabled}
-        >
-          Invia
-        </button>
-      </form>
+
+      <div className={styles.composer}>
+        <form onSubmit={handleSubmit} className={styles.inputForm}>
+          <input
+            type="text"
+            className={styles.input}
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+            placeholder="Scrivi il tuo messaggio..."
+          />
+          <button
+            type="submit"
+            className={styles.button}
+            disabled={chatState.inputDisabled}
+          >
+            Invia
+          </button>
+        </form>
+      </div>
     </div>
   );
 };
