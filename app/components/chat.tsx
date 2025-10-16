@@ -228,16 +228,16 @@ const Chat = ({
 - NON usare MAI elenchi puntati o numerati
 - Suddividi le informazioni in paragrafi separati e distinti
 - Inizia ogni paragrafo con il concetto principale in GRASSETTO (usa **testo** per il grassetto)
-- Massimo 2-3 frasi per paragrafo
-- Usa una riga vuota tra un paragrafo e l'altro per migliorare la leggibilità
+- Massimo 3-4 frasi per paragrafo
+- Usa una mezza riga vuota tra un paragrafo e l'altro per migliorare la leggibilità
 - Evita giri di parole, sii pratico e utile
 
 ESEMPIO DI FORMATTAZIONE CORRETTA:
-**Dimensioni ideali:** Per un bambino di 3 anni, ti consiglio un letto 70x140 cm. Questa misura garantisce comfort e sicurezza.
+**Dimensioni ideali:** Per un bambino di 3 anni, ti consiglio un letto 190x80 cm. Questa misura garantisce comfort e sicurezza e soprattutto durerà nel tempo.
 
-**Materiale consigliato:** Il legno massello è perfetto perché è naturale e resistente. Durerà molti anni.
+**Materiale consigliato:** Il legno massello è perfetto perché è naturale e resistente. Durerà molti anni. Certificato PEFC per la sostenibilità.
 
-**Sicurezza:** Le sponde rimovibili sono essenziali a questa età. Proteggono senza limitare l'autonomia.
+**Sicurezza:** Quelle di Nabè sono sponde rimovibili, essenziali per seguire la crescita del tuo bambino. Proteggono senza limitare l'autonomia.
 
 FORMATO PRODOTTI:
 Quando consigli un prodotto, usa ESATTAMENTE questo formato:
@@ -245,9 +245,14 @@ Quando consigli un prodotto, usa ESATTAMENTE questo formato:
 Dove 'nome-prodotto-handle' è l'ID del prodotto (es: letto-montessori-casetta-baldacchino-zeropiu)
 
 Esempio:
-**Letto perfetto per te:** Ti consiglio questo modello specifico.
+**Letto perfetto per te:** Ti consiglio questo modello specifico oppure consigli più modelli indicando le caratteristiche principali.
+
 [PRODOTTO: letto-montessori-casetta-baldacchino-zeropiu]
-È ideale perché...
+Una capanna magica per avventure e sogni
+[PRODOTTO: letto-zeropiu-earth-con-kit-piedini-omaggio]
+Un letto semplice e accogliente pensato per i bambini di tutte le età.
+[PRODOTTO: letto-evolutivo-fun]
+Il letto Montessori evolutivo zero+ Fun che unisce estetica e funzionalità con la sua innovativa testiera contenitore
 
 IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
 
@@ -594,16 +599,16 @@ IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
     Ho un bambino di 3 anni, che letto mi consigli?
   </button>
   <button 
-    onClick={() => setUserInput("Ho due figli di 4 e 7 anni, mi serve un letto a castello?")}
+    onClick={() => setUserInput("Ho due figli di 4 e 7 anni, cosa mi consigli di fare?")}
     className={styles.quickQuestion}
   >
-    Ho due figli di 4 e 7 anni, mi serve un letto a castello?
+    Ho due figli di 4 e 7 anni, cosa mi consigli di fare?
   </button>
   <button 
-    onClick={() => setUserInput("Mio figlio ha iniziato a camminare, quali sponde mi consigli?")}
+    onClick={() => setUserInput("Mio figlio ha quasi 5 anni, quali sponde mi consigli?")}
     className={styles.quickQuestion}
   >
-    Mio figlio ha iniziato a camminare, quali sponde mi consigli?
+    Mio figlio ha quasi 5 anni, quali sponde mi consigli?
   </button>
   <button 
     onClick={() => setUserInput("La cameretta è piccola, che dimensioni mi consigli?")}
