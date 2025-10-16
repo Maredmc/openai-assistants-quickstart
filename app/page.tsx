@@ -22,8 +22,7 @@ const BedAdvisorChatbot = () => {
               />
             </div>
             <div>
-              <h1 className={styles.title}>Assistente Letti AI</h1>
-              <p className={styles.subtitle}>Il tuo consulente per il riposo perfetto</p>
+              <h1 className={styles.title}>Assistente AI di Nabè</h1>
             </div>
           </div>
         </div>
