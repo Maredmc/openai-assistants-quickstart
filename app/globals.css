@@ -23,10 +23,12 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  height: 100%;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
+  overflow: hidden;
 }
 
 a {
