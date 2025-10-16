@@ -622,6 +622,27 @@ IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
   return (
     <div className={styles.chatContainer}>
       <div className={styles.chatBody}>
+        <div className={styles.chatHeader}>
+          <div className={styles.chatHeaderContent}>
+            <div className={styles.chatHeaderIdentity}>
+              <div className={styles.chatHeaderIcon}>
+                <Image
+                  src="/logo_nabè.png"
+                  alt="Logo Nabè"
+                  width={24}
+                  height={24}
+                />
+              </div>
+              <div className={styles.chatHeaderText}>
+                <span className={styles.chatHeaderTitle}>Assistente AI di Nabè</span>
+                <span className={styles.chatHeaderSubtitle}>Sempre a tua disposizione</span>
+              </div>
+            </div>
+            <div className={styles.chatHeaderStatus}>
+              <span className={styles.chatHeaderBadge}>Online</span>
+            </div>
+          </div>
+        </div>
         <div className={styles.messages}>
           {messages.length === 0 && (
             <div className={styles.welcomeMessage}>
