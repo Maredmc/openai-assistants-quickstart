@@ -1,30 +1,19 @@
 .chatContainer {
   position: relative;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   flex: 1;
   width: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
   height: 100vh;
   height: 100dvh;
+  justify-items: stretch;
   background-color: #ffffff;
   overflow: hidden;
   isolation: isolate;
 }
 
-.chatBody {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  overflow: hidden;
-  min-height: 0;
-  height: 100%;
-  background-color: #ffffff;
-}
-
 .chatHeader {
+  grid-row: 1 / 2;
   position: sticky;
   top: 0;
   z-index: 7;
@@ -106,10 +95,13 @@
 }
 
 .messages {
+  grid-row: 2 / 3;
   flex: 1;
   width: 100%;
-  padding: 32px 16px 120px;
+  height: 100%;
+  padding: 32px 16px 80px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -402,11 +394,12 @@
 }
 
 .composer {
+  grid-row: 3 / 4;
   position: sticky;
   bottom: 0;
-  left: 0;
-  right: 0;
   z-index: 5;
+  width: 100%;
+  align-self: stretch;
   padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
   background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #ffffff 45%);
   border-top: 1px solid #e5e7eb;
