@@ -1,57 +1,36 @@
-import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/app/openai";
 
 export const runtime = "nodejs";
 
-// Send a new message to a thread
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { threadId: string } }
-) {
-  const { content } = await request.json();
+// Istruzioni ottimizzate per l'assistant
+const ASSISTANT_INSTRUCTIONS = `Sei un consulente esperto Nabè per letti bambini.
 
-  try {
-    // Crea il messaggio nel thread
-    await openai.beta.threads.messages.create(params.threadId, {
-      role: "user",
-      content: content,
-    });
+**FOCUS**: Solo letti per bambini. Altri argomenti → "Contatta 351 984 8828 o hello@nabecreation.com"
 
-    // Esegui il thread con l'assistente
-    // NOTA: Le istruzioni di sistema devono essere configurate 
-    // quando crei l'assistente, non qui
-    const stream = openai.beta.threads.runs.stream(params.threadId, {
-      assistant_id: process.env.OPENAI_ASSISTANT_ID ?? (() => {
-        throw new Error("OPENAI_ASSISTANT_ID is not set");
-      })(),
-      // Se hai bisogno di istruzioni aggiuntive per questa esecuzione specifica,
-      // puoi usare il parametro 'additional_instructions'
-      // additional_instructions: "Rispondi sempre in italiano e sii conciso",
-    });
+**DOMANDE CHIAVE**: Età bambini, numero figli, spazio cameretta, autonomia bambino
 
-    return new NextResponse(stream.toReadableStream());
-  } catch (error) {
-    console.error("Error creating message or running assistant:", error);
-    return NextResponse.json(
-      { error: "Failed to process message" },
-      { status: 500 }
-    );
-  }
-}
+**DIMENSIONI**: 190x80cm (2-6 anni), 160x80cm (compatto), 190x120cm (6+ anni)
 
-// Get messages from a thread
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { threadId: string } }
-) {
-  try {
-    const messages = await openai.beta.threads.messages.list(params.threadId);
-    return NextResponse.json(messages);
-  } catch (error) {
-    console.error("Error fetching messages:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch messages" },
-      { status: 500 }
-    );
-  }
+**SPONDE per età**:
+- 1-3 anni: Sponde complete
+- 3-5 anni: Set metà superiore  
+- 5-7 anni: Testiera pediera
+- 7+ anni: Senza sponde
+
+**CASTELLO**: Solo con più figli. Letto superiore: 6+ anni + sponde obbligatorie
+
+**TONO**: Caloroso, sicurezza first, coinvolgi il bambino nelle scelte.`;
+
+// Create a new assistant
+export async function POST() {
+  const assistant = await openai.beta.assistants.create({
+    instructions: ASSISTANT_INSTRUCTIONS,
+    name: "Nabè - Consulente Letti Bambini",
+    model: "gpt-4-turbo-preview",
+    tools: [
+      { type: "code_interpreter" },
+      { type: "file_search" }
+    ],
+  });
+  return Response.json({ assistantId: assistant.id });
 }
