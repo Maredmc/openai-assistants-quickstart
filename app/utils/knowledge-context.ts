@@ -4,6 +4,16 @@ import { NABE_PRODUCT_HANDLES } from "@/app/data/nabe-product-handles";
 const BASE_MARKER =
   "📚 BASE DI CONOSCENZA NABÈ (estratta dal documento Addestramento IA)";
 
+const PRODUCT_SUGGESTION_GUIDE = `ISTRUZIONI PRODOTTI:
+- Quando consigli un articolo Nabè, inserisci sempre una riga a parte nel formato esatto [PRODOTTO: handle-prodotto].
+- Prima del tag descrivi in 1-2 frasi il beneficio principale con tono Nabè (caloroso, motivazionale, professionale).
+- Non usare liste puntate; costruisci al massimo tre paragrafi da 3-4 frasi, ciascuno iniziando con **grassetto**.
+- Seleziona gli handle dal riferimento prodotti incluso di seguito.
+
+ESEMPIO:
+**Letto perfetto per te:** Ti consiglio questo modello perché regala al bambino uno spazio autonomo e sicuro, ideale per crescere con serenità.
+[PRODOTTO: letto-montessori-casetta-baldacchino-zeropiu]`;
+
 const headingRegex = /^[A-ZÀ-ÖØ-Ý][A-ZÀ-ÖØ-Ý0-9\s\+\-\/]*$/;
 
 function looksLikeHeading(value: string) {
@@ -95,7 +105,9 @@ export function buildKnowledgeContext(userMessage: string) {
       `${product.name}: usa [PRODOTTO: ${product.id}] quando consigli questo articolo; vantaggio principale: ${product.focus}.`
   ).join("\n");
 
-  const knowledgeParts = [intro, ...selectedSections].filter(Boolean);
+  const knowledgeParts = [intro, ...selectedSections, PRODUCT_SUGGESTION_GUIDE].filter(
+    Boolean
+  );
   let baseKnowledge = knowledgeParts.join("\n\n");
 
   const maxLength = 9000;
