@@ -1,4 +1,5 @@
 import { NABE_KNOWLEDGE_BASE } from "@/app/data/nabe-knowledge";
+import { NABE_PRODUCT_HANDLES } from "@/app/data/nabe-product-handles";
 
 const BASE_MARKER =
   "📚 BASE DI CONOSCENZA NABÈ (estratta dal documento Addestramento IA)";
@@ -89,7 +90,27 @@ export function buildKnowledgeContext(userMessage: string) {
   const selectedSections =
     ranked.length > 0 ? ranked.slice(0, 10) : fallbackSections;
 
-  const knowledge = [intro, ...selectedSections].filter(Boolean).join("\n\n");
+  const productReference = NABE_PRODUCT_HANDLES.map(
+    (product) =>
+      `${product.name}: usa [PRODOTTO: ${product.id}] quando consigli questo articolo; vantaggio principale: ${product.focus}.`
+  ).join("\n");
 
-  return knowledge.length > 9000 ? knowledge.slice(0, 9000) : knowledge;
+  const knowledgeParts = [intro, ...selectedSections].filter(Boolean);
+  let baseKnowledge = knowledgeParts.join("\n\n");
+
+  const maxLength = 9000;
+  const productReferenceLength = productReference.length + 2; // include spacing
+
+  if (baseKnowledge.length > maxLength - productReferenceLength) {
+    baseKnowledge = baseKnowledge.slice(
+      0,
+      Math.max(0, maxLength - productReferenceLength)
+    );
+  }
+
+  const combined = [baseKnowledge.trim(), productReference].filter(Boolean).join(
+    "\n\n"
+  );
+
+  return combined.length > maxLength ? combined.slice(0, maxLength) : combined;
 }
