@@ -234,7 +234,12 @@ const Chat = ({
     adjustInputHeight();
   }, [userInput]);
 
-  const sendMessage = async (text) => {
+  const sendMessage = async (text: string) => {
+    if (!threadId) {
+      console.warn("Thread non pronto, messaggio ignorato.");
+      return;
+    }
+
     // Inizia monitoraggio performance
     const startTime = performanceMonitor.startChatResponse();
     setResponseStartTime(startTime);
@@ -244,53 +249,42 @@ const Chat = ({
       text.toLowerCase().includes(keyword)
     );
 
-    let systemInstructions = `ISTRUZIONI IMPORTANTI:
-- Rispondi in modo CONCISO e DIRETTO
-- NON usare MAI elenchi puntati o numerati
-- Suddividi le informazioni in paragrafi separati e distinti
-- Inizia ogni paragrafo con il concetto principale in GRASSETTO (usa **testo** per il grassetto)
-- Massimo 3-4 frasi per paragrafo
-- Usa una mezza riga vuota tra un paragrafo e l'altro per migliorare la leggibilità
-- Evita giri di parole, sii pratico e utile
+    try {
+      const response = await fetch(
+        `/api/assistants/threads/${threadId}/messages`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            content: text,
+          }),
+        }
+      );
 
-ESEMPIO DI FORMATTAZIONE CORRETTA:
-**Dimensioni ideali:** Per un bambino di 3 anni, ti consiglio un letto 190x80 cm. Questa misura garantisce comfort e sicurezza e soprattutto durerà nel tempo.
-
-**Materiale consigliato:** Il legno massello è perfetto perché è naturale e resistente. Durerà molti anni. Certificato PEFC per la sostenibilità.
-
-**Sicurezza:** Quelle di Nabè sono sponde rimovibili, essenziali per seguire la crescita del tuo bambino. Proteggono senza limitare l'autonomia.
-
-FORMATO PRODOTTI:
-Quando consigli un prodotto, usa ESATTAMENTE questo formato:
-[PRODOTTO: nome-prodotto-handle]
-Dove 'nome-prodotto-handle' è l'ID del prodotto (es: letto-montessori-casetta-baldacchino-zeropiu)
-
-Esempio:
-**Letto perfetto per te:** Ti consiglio questo modello specifico oppure consigli più modelli indicando le caratteristiche principali.
-
-[PRODOTTO: letto-montessori-casetta-baldacchino-zeropiu]
-Una capanna magica per avventure e sogni
-[PRODOTTO: letto-zeropiu-earth-con-kit-piedini-omaggio]
-Un letto semplice e accogliente pensato per i bambini di tutte le età.
-[PRODOTTO: letto-evolutivo-fun]
-Il letto Montessori evolutivo zero+ Fun che unisce estetica e funzionalità con la sua innovativa testiera contenitore
-
-IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
-
-    // INVIO IMMEDIATO - Non bloccare per fetch prodotti
-    systemInstructions += `\n\nDomanda utente: ${text}`;
-    
-    const response = await fetch(
-      `/api/assistants/threads/${threadId}/messages`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          content: systemInstructions,
-        }),
+      if (!response.ok || !response.body) {
+        throw new Error(`Richiesta fallita con status ${response.status}`);
       }
-    );
-    const stream = AssistantStream.fromReadableStream(response.body);
-    handleReadableStream(stream);
+
+      const stream = AssistantStream.fromReadableStream(response.body);
+      handleReadableStream(stream);
+    } catch (error) {
+      console.error("Errore durante l'invio del messaggio:", error);
+      performanceMonitor.endChatResponse(startTime);
+      setResponseStartTime(null);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          role: "assistant",
+          text: "Mi dispiace, ho avuto un problema tecnico. Prova di nuovo tra qualche istante o contattaci su hello@nabecreation.com.",
+        },
+      ]);
+      setChatState((prev) => ({
+        ...prev,
+        inputDisabled: false,
+        isLoading: false,
+      }));
+      performanceMonitor.recordApiError("assistant-run", error.message);
+      return;
+    }
 
     // FETCH PRODOTTI IN BACKGROUND - Non bloccante
     if (hasProductQuery) {
@@ -348,6 +342,10 @@ IMPORTANTE: Usa [PRODOTTO: id] ogni volta che consigli un prodotto specifico!`;
   const processUserMessage = () => {
     const outboundText = userInput.trim();
     if (!outboundText || chatState.inputDisabled) return;
+    if (!threadId) {
+      console.warn("Thread non pronto, attendi qualche istante prima di inviare.");
+      return;
+    }
 
     // Controlla se l'utente sta rifiutando di essere contattato
     const refusalKeywords = ['no grazie', 'non voglio', 'non interessato', 'no thanks', 'non ora', 'magari dopo', 'non mi interessa', 'non ho bisogno', 'preferirei di no', 'non adesso'];
