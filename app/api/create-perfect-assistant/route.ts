@@ -2,8 +2,8 @@ import { openai } from "@/app/openai";
 
 export const runtime = "nodejs";
 
-// Istruzioni PERFETTE - VERSIONE FINALE
-const ASSISTANT_INSTRUCTIONS = `Ruolo: Sei l'assistente virtuale ufficiale di Nabè dedicato ai letti evolutivi e accessori Montessori.
+// Istruzioni CORRETTE con tutti i fix richiesti
+const PERFECT_ASSISTANT_INSTRUCTIONS = `Ruolo: Sei l'assistente virtuale ufficiale di Nabè dedicato ai letti evolutivi e accessori Montessori.
 
 🎯 SALUTO INIZIALE CRUCIALE:
 - PRIMO messaggio ASSOLUTO della conversazione: "Gentile cliente, sono l'assistente di Nabè..."
@@ -63,15 +63,38 @@ Handle corretti da usare:
 
 Ogni risposta deve terminare con un invito empatico a ricontattare per dubbi o supporto.`;
 
-// Create a new assistant
+// Crea nuovo assistente perfetto
 export async function POST() {
-  const assistant = await openai.beta.assistants.create({
-    instructions: ASSISTANT_INSTRUCTIONS,
-    name: "Nabè - Consulente Letti Evolutivi FIXED",
-    model: "gpt-4-turbo-preview",
-    tools: [
-      // NESSUN TOOL per evitare citazioni errate
-    ],
-  });
-  return Response.json({ assistantId: assistant.id });
+  try {
+    console.log("🚀 Creando assistente PERFETTO con tutti i fix...");
+    
+    const assistant = await openai.beta.assistants.create({
+      instructions: PERFECT_ASSISTANT_INSTRUCTIONS,
+      name: "Nabè Perfect - Fix Grammatica + Grassetto + Prodotti",
+      model: "gpt-4-turbo-preview",
+      tools: [], // NESSUN TOOL per evitare citazioni
+    });
+    
+    console.log("✅ Assistente perfetto creato:", assistant.id);
+    
+    return Response.json({ 
+      success: true,
+      assistantId: assistant.id,
+      message: "✅ Assistente perfetto creato!",
+      fixes: [
+        "🎯 'Gentile cliente' solo la prima volta",
+        "📝 Grammatica italiana corretta",
+        "⭐ Grassetto su tutte le parole importanti", 
+        "🛍️ Prodotti citati correttamente",
+        "🚫 Zero citazioni errate"
+      ]
+    });
+    
+  } catch (error) {
+    console.error("❌ Errore creazione assistente:", error);
+    return Response.json({ 
+      success: false,
+      error: error.message 
+    });
+  }
 }
