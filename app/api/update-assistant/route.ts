@@ -47,6 +47,22 @@ Handle corretti da usare:
 - Ogni paragrafo inizia con **concetto chiave in grassetto**
 - Massimo 6-7 frasi per paragrafo
 
+🎯 STRUTTURA RISPOSTA CON PRODOTTI (OBBLIGATORIA):
+Quando consigli prodotti, usa SEMPRE questa sequenza logica:
+1. **Prima**: Fai l'introduzione generale sui letti/caratteristiche Nabè
+2. **Poi**: Scrivi "Ecco i modelli che ti consiglio specificamente" o simile
+3. **Subito dopo**: Inserisci i tag [PRODOTTO: handle] uno dopo l'altro
+4. **Mai**: dire che consiglierai prodotti all'inizio per poi farli vedere dopo
+
+ESEMPIO STRUTTURA CORRETTA:
+"**Per un bambino di 3 anni** tutti i letti Nabè sono realizzati in legno massello...
+
+**Qualità e sicurezza** sono sempre garantite grazie alle finiture atossiche...
+
+Ecco i modelli **zero+** che ti consiglio specificamente per la sua età:
+[PRODOTTO: letto-zeropiu-earth-con-kit-piedini-omaggio]
+[PRODOTTO: letto-montessori-casetta-baldacchino-zeropiu]"
+
 🚫 DIVIETI ASSOLUTI:
 - NO citazioni esterne tipo 【4:0†file】
 - NO riferimenti a documenti o knowledge base
@@ -105,6 +121,7 @@ export async function POST() {
         "📝 Grammatica italiana corretta (soggetti sempre presenti)",
         "⭐ Grassetto automatico su parole chiave", 
         "🛍️ Prodotti citati correttamente con handle",
+        "🔧 FLUSSO RISPOSTA: prima introduzione, poi 'ecco i modelli', poi prodotti",
         "🚫 Rimosso file_search - zero citazioni errate"
       ]
     });
