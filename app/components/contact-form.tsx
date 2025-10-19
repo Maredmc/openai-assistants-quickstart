@@ -12,9 +12,10 @@ interface ContactFormProps {
   }>;
   onContactDeclined?: () => void;
   showAlternativeOffer?: boolean;
+  onContactSuccess?: () => void;
 }
 
-export default function ContactForm({ chatHistory, onContactDeclined, showAlternativeOffer }: ContactFormProps) {
+export default function ContactForm({ chatHistory, onContactDeclined, showAlternativeOffer, onContactSuccess }: ContactFormProps) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
@@ -71,6 +72,11 @@ export default function ContactForm({ chatHistory, onContactDeclined, showAltern
         setPrivacyAccepted(false);
         setNewsletterAccepted(false);
         setWhatsappAccepted(false);
+        
+        // Notifica successo se callback fornito
+        if (onContactSuccess) {
+          setTimeout(() => onContactSuccess(), 2000); // Dopo 2 secondi per mostrare il messaggio
+        }
       } else {
         setError(data.error || "Errore nell'invio della richiesta");
       }

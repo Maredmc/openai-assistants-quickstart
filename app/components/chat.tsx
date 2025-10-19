@@ -10,6 +10,7 @@ import { AssistantStreamEvent } from "openai/resources/beta/assistants/assistant
 import { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/runs/runs";
 import ContactForm from "./contact-form";
 import ProductCard from "./product-card";
+import FloatingContact from "./floating-contact";
 import { addToCart, getCart, getCartItemCount } from "../lib/cart";
 import { trackAddToCart, trackProductView } from "../lib/shopify-analytics";
 import { performanceMonitor } from "../utils/performance-monitor";
@@ -187,7 +188,8 @@ const Chat = ({
     isLoading: false,
     hasAssistantResponded: false,
     contactDeclined: false,
-    showAlternativeOffer: false
+    showAlternativeOffer: false,
+    showFloatingContact: false
   });
   const [threadId, setThreadId] = useState("");
   const [cartCount, setCartCount] = useState(0);
@@ -556,11 +558,16 @@ const Chat = ({
 
   // Funzioni per gestire il rifiuto del contatto
   const handleContactDeclined = () => {
-    setChatState(prev => ({ ...prev, contactDeclined: true, showAlternativeOffer: false }));
-    // Dopo 10 secondi, riattiva l'offerta alternativa
+    setChatState(prev => ({ 
+      ...prev, 
+      contactDeclined: true, 
+      showAlternativeOffer: false, 
+      showFloatingContact: true 
+    }));
+    // Dopo 30 secondi, riattiva l'offerta alternativa
     setTimeout(() => {
       setChatState(prev => ({ ...prev, showAlternativeOffer: true }));
-    }, 10000);
+    }, 30000); // Aumentato a 30 secondi per dare più spazio
   };
 
   // Funzione per convertire i messaggi in formato cronologia chat
@@ -569,6 +576,16 @@ const Chat = ({
       role: msg.role === 'assistant' ? 'assistant' : 'user',
       content: msg.text,
       timestamp: new Date().toISOString()
+    }));
+  };
+
+  // Gestisce successo del form floating contact
+  const handleFloatingContactSuccess = () => {
+    setChatState(prev => ({ 
+      ...prev, 
+      showFloatingContact: false,
+      contactDeclined: false,
+      showAlternativeOffer: false
     }));
   };
 
@@ -674,7 +691,17 @@ const Chat = ({
                 <button
                   onClick={() =>
                     handlePrefillQuestion(
-                      "La cameretta è piccola, che dimensioni letto mi consigli?"
+                      "Mio figlio ha quasi 5 anni, quali sponde mi consigli?"
+                    )
+                  }
+                  className={styles.quickQuestion}
+                >
+                  Mio figlio ha quasi 5 anni, quali sponde mi consigli?
+                </button>
+                <button
+                  onClick={() =>
+                    handlePrefillQuestion(
+                      "La cameretta è piccola, che dimensioni mi consigli?"
                     )
                   }
                   className={styles.quickQuestion}
@@ -794,6 +821,13 @@ const Chat = ({
           </button>
         </form>
       </div>
+      
+      {/* Icona fluttuante per richiesta preventivo */}
+      <FloatingContact 
+        chatHistory={getChatHistory()}
+        isVisible={chatState.showFloatingContact}
+        onSuccess={handleFloatingContactSuccess}
+      />
     </div>
   );
 };
