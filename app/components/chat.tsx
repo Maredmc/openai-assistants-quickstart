@@ -674,7 +674,6 @@ const Chat = ({
                 <button
                   onClick={() =>
                     handlePrefillQuestion(
-                </button>
                       "La cameretta è piccola, che dimensioni letto mi consigli?"
                     )
                   }
