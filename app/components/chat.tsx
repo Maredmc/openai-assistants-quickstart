@@ -796,6 +796,13 @@ const Chat = ({
           <div ref={messagesEndRef} />
         </div>
       <div className={styles.composer}>
+        {/* Icona fluttuante per richiesta preventivo - posizionata relativamente al composer */}
+        <FloatingContact 
+          chatHistory={getChatHistory()}
+          isVisible={chatState.showFloatingContact}
+          onSuccess={handleFloatingContactSuccess}
+        />
+        
         <form onSubmit={handleSubmit} className={styles.inputForm}>
           <textarea
             ref={inputRef}
@@ -821,13 +828,6 @@ const Chat = ({
           </button>
         </form>
       </div>
-      
-      {/* Icona fluttuante per richiesta preventivo */}
-      <FloatingContact 
-        chatHistory={getChatHistory()}
-        isVisible={chatState.showFloatingContact}
-        onSuccess={handleFloatingContactSuccess}
-      />
     </div>
   );
 };

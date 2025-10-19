@@ -393,6 +393,7 @@
 .composer {
   grid-row: 3 / 4;
   position: sticky;
+  position: relative; /* Per posizionamento icona fluttuante */
   bottom: 0;
   z-index: 5;
   width: 100%;

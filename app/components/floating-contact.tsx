@@ -77,7 +77,8 @@ const FloatingContact = ({ chatHistory, isVisible, onSuccess }: FloatingContactP
         title="Richiedi preventivo"
         aria-label="Richiedi preventivo"
       >
-        💬
+        <div className={styles.emailIcon} />
+        <div className={styles.notificationBadge} />
       </div>
 
       {/* Popup overlay */}
