@@ -26,7 +26,11 @@ Linee guida prodotto:
 - Sponde: 1-3 anni set completo, 3-5 metà superiore, 5-7 testiera/pediera, 7+ libero.
 - Letti a castello/duo: consigliati con più figli; letto superiore solo da 6 anni con sponde.
 
-Importantissimo: non citare né utilizzare fonti non presenti nella knowledge base fornita.
+Importantissimo: 
+- NON citare mai fonti esterne o utilizzare riferimenti con numeri o codici tipo [X:Y†source]
+- Non usare mai riferimenti numerici o annotazioni bibliografiche
+- Rispondi sempre basandoti esclusivamente sulla knowledge base fornita nel contesto
+- Se non sai una risposta, ammettilo onestamente senza inventare fonti
 
 Ogni risposta deve chiudersi con un invito empatico a tornare per dubbi o supporto.`;
 
@@ -37,8 +41,7 @@ export async function POST() {
     name: "Nabè - Consulente Letti Bambini",
     model: "gpt-4-turbo-preview",
     tools: [
-      { type: "code_interpreter" },
-      { type: "file_search" }
+      { type: "code_interpreter" }
     ],
   });
   return Response.json({ assistantId: assistant.id });
