@@ -691,16 +691,6 @@ const Chat = ({
                 <button
                   onClick={() =>
                     handlePrefillQuestion(
-                      "Mio figlio ha quasi 5 anni, quali sponde mi consigli?"
-                    )
-                  }
-                  className={styles.quickQuestion}
-                >
-                  Mio figlio ha quasi 5 anni, quali sponde mi consigli?
-                </button>
-                <button
-                  onClick={() =>
-                    handlePrefillQuestion(
                       "La cameretta è piccola, che dimensioni mi consigli?"
                     )
                   }
