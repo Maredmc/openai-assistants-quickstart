@@ -861,7 +861,7 @@ const Chat = ({
               bottom: '90px',
               left: '50%',
               transform: 'translateX(-50%)',
-              backgroundColor: '#007bff',
+              background: 'linear-gradient(135deg,#79aea3,#5a9d8f)',
               color: 'white',
               border: 'none',
               borderRadius: '25px',
