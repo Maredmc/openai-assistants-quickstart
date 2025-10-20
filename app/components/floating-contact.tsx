@@ -105,7 +105,7 @@ const FloatingContact = ({ chatHistory, isVisible, onSuccess }: FloatingContactP
               Preventivo Personalizzato
             </div>
             <div className={styles.popupSubtitle}>
-              Il nostro team ti contatterà entro 24 ore per discutere del tuo progetto e offrirti la soluzione perfetta per i tuoi bambini.
+              Il nostro team ti contatterà entro 24 ore per approfondire del tuo progetto e offrirti la soluzione perfetta per i tuoi bambini.
             </div>
 
             {/* Form contatto */}
