@@ -20,44 +20,50 @@ export const PRODUCT_MAPPING = {
   },
   'zero+ Fun': {
     handle: 'letto-evolutivo-fun',
-    name: 'Letto zero+ Fun',
+    name: 'Letto montessori evolutivo zero+ Fun',
     description: 'Testiera contenitore per autonomia e ordine',
     category: 'letto'
   },
   'zero+ Family': {
-    handle: 'letto-montessori-evolutivo-zeropiu-family',
-    name: 'Letto zero+ Family', 
+    handle: 'letto-evolutivo-zero-family-con-kit-piedini-omaggio',
+    name: 'Letto a due piazze zero+ Family', 
     description: 'Due piazze per co-sleeping e comfort familiare',
     category: 'letto'
   },
   'zero+ Duo': {
-    handle: 'letto-castello-evolutivo-zeropiu-duo',
-    name: 'Letto zero+ Duo',
-    description: 'Soluzione a castello evolutiva per fratelli',
+    handle: 'letto-a-castello-zero-duo-con-kit-piedini-omaggio',
+    name: 'Letto a castello zero+ Duo',
+    description: 'Soluzione a castello evolutiva per fratelli e sorelle di tutte le età',
     category: 'letto'
   },
   'zero+ Up': {
-    handle: 'letto-a-soppalco-zeropiu-up', // ✅ CORRETTO
-    name: 'Letto zero+ Up',
+    handle: 'letto-a-soppalco-mezza-altezza-evolutivo-zero-up', // ✅ CORRETTO
+    name: 'Letto a soppalco mezza altezza zero+ Up',
     description: 'Soppalco mezza altezza per liberare spazio',
     category: 'letto'
   },
 
   // 🛏️ ACCESSORI LETTO
   'Sponde': {
-    handle: 'kit-sponde-di-sicurezza-per-letto-zeropiu',
+    handle: 'sponde-protettive-per-letto-zeropiu',
     name: 'Sponde protettive zero+',
     description: 'Modulari per accompagnare l\'autonomia in sicurezza',
     category: 'accessorio'
   },
+  'Kit piedini': {
+    handle: 'kit-piedoni-per-letto-zero-dream',
+    name: 'Kit piedOni',
+    description: 'Rialza il letto di 11cm',
+    category: 'accessorio'
+  },
   'Kit piedOni': {
-    handle: 'kit-piedoni-zeropiu',
+    handle: 'kit-piedoni-per-letto-zero-dream',
     name: 'Kit piedOni',
     description: 'Rialza il letto di 23cm per cassettone o autonomia avanzata',
     category: 'accessorio'
   },
   'Cassettone': {
-    handle: 'cassettone-estraibile-letto-zeropiu',
+    handle: 'letto-contenitore-estraibile-zeropiu',
     name: 'Cassettone estraibile zero+',
     description: 'Secondo letto o grande contenitore salvaspazio',
     category: 'accessorio'
@@ -65,19 +71,19 @@ export const PRODUCT_MAPPING = {
 
   // 💤 COMFORT E RIPOSO
   'Materasso': {
-    handle: 'materasso-evolutivo-letto-zeropiu',
+    handle: 'materasso-evolutivo-zeropiu',
     name: 'Materasso evolutivo zero+',
     description: 'Schiume ecologiche a zone per ogni fase di crescita',
     category: 'comfort'
   },
   'Cuscini Camomilla': {
-    handle: 'coppia-cuscini-zeropiu-camomilla', // ✅ AGGIUNTO
+    handle: 'cuscino-camomilla', // ✅ AGGIUNTO
     name: 'Coppia cuscini zero+ Camomilla',
     description: 'Memory pro con trattamenti alla camomilla',
     category: 'comfort'
   },
   'Cuscini Plin': {
-    handle: 'coppia-cuscini-zeropiu-plin', // ✅ AGGIUNTO
+    handle: 'coppia-cuscini-plin', // ✅ AGGIUNTO
     name: 'Coppia cuscini zero+ Plin',
     description: 'Guanciali lavabili in due taglie evolutive',
     category: 'comfort'

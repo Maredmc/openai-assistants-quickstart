@@ -15,48 +15,53 @@ export const NABE_PRODUCT_HANDLES = [
     focus: "testiera contenitore per autonomia e ordine",
   },
   {
-    id: "letto-montessori-evolutivo-zeropiu-family",
+    id: "letto-evolutivo-zero-family-con-kit-piedini-omaggio",
     name: "Letto zero+ Family",
     focus: "due piazze per co-sleeping e comfort familiare",
   },
   {
-    id: "letto-castello-evolutivo-zeropiu-duo",
+    id: "letto-a-castello-zero-duo-con-kit-piedini-omaggio",
     name: "Letto zero+ Duo",
-    focus: "soluzione a castello evolutiva per fratelli",
+    focus: "soluzione a castello evolutiva per fratelli e sorelle di tutte le età",
   },
   {
-    id: "letto-a-soppalco-zeropiu-up",
+    id: "letto-a-soppalco-mezza-altezza-evolutivo-zero-up",
     name: "Letto zero+ Up",
     focus: "soppalco mezza altezza per liberare spazio",
   },
   {
-    id: "materasso-evolutivo-letto-zeropiu",
+    id: "materasso-evolutivo-zeropiu",
     name: "Materasso evolutivo zero+",
     focus: "schiume ecologiche a zone per ogni fase di crescita",
   },
   {
-    id: "coppia-cuscini-zeropiu-camomilla",
+    id: "cuscino-camomilla",
     name: "Coppia cuscini zero+ Camomilla",
     focus: "memory pro con trattamenti alla camomilla",
   },
   {
-    id: "coppia-cuscini-zeropiu-plin",
+    id: "coppia-cuscini-plin",
     name: "Coppia cuscini zero+ Plin",
     focus: "guanciali lavabili in due taglie evolutive",
   },
   {
-    id: "kit-sponde-di-sicurezza-per-letto-zeropiu",
+    id: "sponde-protettive-per-letto-zeropiu",
     name: "Sponde protettive zero+",
     focus: "modulari per accompagnare l’autonomia in sicurezza",
   },
   {
-    id: "kit-piedoni-zeropiu",
+    id: "kit-piedini-per-letto-zeropiu",
+    name: "Kit piedini",
+    focus: "rialza il letto di 11cm",
+  },
+  {
+    id: "kit-piedoni-per-letto-zero-dream",
     name: "Kit piedOni",
     focus: "rialza il letto di 23cm per cassettone o autonomia avanzata",
   },
   {
-    id: "cassettone-estraibile-letto-zeropiu",
+    id: "letto-contenitore-estraibile-zeropiu",
     name: "Cassettone estraibile zero+",
-    focus: "secondo letto o grande contenitore salvaspazio",
+    focus: "cassettone estraibile versione secondo letto o contenitore salvaspazio",
   }
 ];
