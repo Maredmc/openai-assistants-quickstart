@@ -202,14 +202,48 @@ const Chat = ({
   }, []);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const [shouldFollowScroll, setShouldFollowScroll] = useState(true);
+  
+  // 🎯 Smart Scroll: Controlla se l'utente è vicino al fondo
+  const isUserNearBottom = () => {
+    if (!messagesContainerRef.current) return true;
+    const container = messagesContainerRef.current;
+    const threshold = 150; // pixels dal fondo
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    return isNearBottom;
+  };
+  
+  // 📜 Scroll intelligente che rispetta la posizione utente
+  const smartScrollToBottom = (force = false) => {
+    if (force || shouldFollowScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+  
+  // 🔄 Aggiorna shouldFollowScroll basato sulla posizione utente
+  const handleScroll = () => {
+    setShouldFollowScroll(isUserNearBottom());
+  };
+  
+  // 🎧 Listener per scroll dell'utente
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
+  
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
   
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, chatState.isLoading]);
+    // 🧠 Smart scroll: segue solo se l'utente è in fondo o è appropriato
+    smartScrollToBottom();
+  }, [messages, chatState.isLoading, shouldFollowScroll]);
 
   useEffect(() => {
     const createThread = async () => {
@@ -372,7 +406,10 @@ const Chat = ({
     ]);
     setUserInput("");
     setChatState(prev => ({ ...prev, inputDisabled: true, isLoading: true }));
-    scrollToBottom();
+    
+    // 🎯 Forza scroll quando utente manda messaggio (azione volontaria)
+    setShouldFollowScroll(true);
+    setTimeout(() => smartScrollToBottom(true), 100);
     requestAnimationFrame(() => {
       if (inputRef.current) {
         inputRef.current.style.height = "auto";
@@ -496,6 +533,11 @@ const Chat = ({
       };
       return [...prevMessages.slice(0, -1), updatedLastMessage];
     });
+    
+    // 🌊 Scroll fluido durante la crescita del messaggio
+    if (shouldFollowScroll) {
+      setTimeout(() => smartScrollToBottom(), 50);
+    }
   };
 
   // Funzione per estrarre e fetchare prodotti dal testo dell'AI
@@ -635,7 +677,7 @@ const Chat = ({
   }
 
   return (
-    <div className={styles.chatContainer}>
+    <div className={styles.chatContainer} style={{ position: 'relative' }}>
       <div className={styles.chatHeader}>
         <div className={styles.chatHeaderContent}>
           <div className={styles.chatHeaderIdentity}>
@@ -657,7 +699,7 @@ const Chat = ({
           </div>
         </div>
       </div>
-      <div className={styles.messages}>
+      <div className={styles.messages} ref={messagesContainerRef}>
           {messages.length === 0 && (
             <div className={styles.welcomeMessage}>
               <h2>Benvenutə in Nabè</h2>
@@ -785,6 +827,39 @@ const Chat = ({
 
           <div ref={messagesEndRef} />
         </div>
+        
+        {/* 🔽 Bottone "Torna in fondo" quando utente ha scrollato su */}
+        {!shouldFollowScroll && (
+          <div 
+            className={styles.scrollToBottomButton}
+            onClick={() => {
+              setShouldFollowScroll(true);
+              smartScrollToBottom(true);
+            }}
+            style={{
+              position: 'absolute',
+              bottom: '80px',
+              right: '20px',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '50%',
+              width: '48px',
+              height: '48px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '20px',
+              zIndex: 1000,
+              transition: 'all 0.3s ease'
+            }}
+            title="Torna in fondo"
+          >
+            ↓
+          </div>
+        )}
       <div className={styles.composer}>
         {/* Icona fluttuante per richiesta preventivo - posizionata relativamente al composer */}
         <FloatingContact 

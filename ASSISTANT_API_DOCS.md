@@ -1,4 +1,5 @@
 # 🚀 API Assistant Manager - Documentazione
+// Sistema ottimizzato - Ottobre 2025
 
 ## 📋 Overview
 Sistema centralizzato e sicuro per la gestione degli assistenti OpenAI Nabè.
