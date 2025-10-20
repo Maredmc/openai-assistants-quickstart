@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import styles from "./chat.module.css";
 import { AssistantStream } from "openai/lib/AssistantStream";
@@ -194,6 +194,7 @@ const Chat = ({
   const [threadId, setThreadId] = useState("");
   const [cartCount, setCartCount] = useState(0);
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
+  const [shouldFollowScroll, setShouldFollowScroll] = useState(true);
 
   // Inizializza cart count
   useEffect(() => {
@@ -204,28 +205,27 @@ const Chat = ({
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  const [shouldFollowScroll, setShouldFollowScroll] = useState(true);
   
   // 🎯 Smart Scroll: Controlla se l'utente è vicino al fondo
-  const isUserNearBottom = () => {
+  const isUserNearBottom = useCallback(() => {
     if (!messagesContainerRef.current) return true;
     const container = messagesContainerRef.current;
     const threshold = 150; // pixels dal fondo
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
     return isNearBottom;
-  };
+  }, []);
   
   // 📜 Scroll intelligente che rispetta la posizione utente
-  const smartScrollToBottom = (force = false) => {
+  const smartScrollToBottom = useCallback((force = false) => {
     if (force || shouldFollowScroll) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  };
+  }, [shouldFollowScroll]);
   
   // 🔄 Aggiorna shouldFollowScroll basato sulla posizione utente
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     setShouldFollowScroll(isUserNearBottom());
-  };
+  }, [isUserNearBottom]);
   
   // 🎧 Listener per scroll dell'utente
   useEffect(() => {
@@ -234,7 +234,7 @@ const Chat = ({
       container.addEventListener('scroll', handleScroll);
       return () => container.removeEventListener('scroll', handleScroll);
     }
-  }, []);
+  }, [handleScroll]);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -243,7 +243,7 @@ const Chat = ({
   useEffect(() => {
     // 🧠 Smart scroll: segue solo se l'utente è in fondo o è appropriato
     smartScrollToBottom();
-  }, [messages, chatState.isLoading, shouldFollowScroll]);
+  }, [messages, chatState.isLoading, smartScrollToBottom]);
 
   useEffect(() => {
     const createThread = async () => {
