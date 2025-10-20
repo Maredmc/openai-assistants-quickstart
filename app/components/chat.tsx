@@ -715,7 +715,7 @@ const Chat = ({
             </div>
           </div>
           <div className={styles.chatHeaderStatus}>
-            <span className={styles.chatHeaderBadge}>Online</span>
+            <span className={styles.chatHeaderBadge}>v. beta</span>
           </div>
         </div>
       </div>
