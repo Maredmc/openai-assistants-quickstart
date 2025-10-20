@@ -63,9 +63,26 @@ const AssistantBubble = ({
   return (
     <div className={styles.assistantMessage}>
       <span className={styles.assistantLabel}>Assistente</span>
-      <Markdown>{cleanText}</Markdown>
+      
+      {/* 🔗 Markdown con link che si aprono in nuova scheda */}
+      <Markdown
+        components={{
+          a: ({ href, children, ...props }) => (
+            <a 
+              href={href} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              {...props}
+            >
+              {children}
+            </a>
+          )
+        }}
+      >
+        {cleanText}
+      </Markdown>
 
-      {/* Mostra prodotti consigliati */}
+      {/* 🛍️ Card prodotti sempre mostrate quando disponibili */}
       {products && products.length > 0 && (
         <div
           style={{
@@ -239,9 +256,6 @@ const Chat = ({
       return () => container.removeEventListener('scroll', handleScroll);
     }
   }, [handleScroll]);
-  
-  // 🚫 RIMOSSO: Auto-scroll durante la scrittura del bot
-  // L'utente resta dove è durante la scrittura
   
   // ✅ Auto-scroll solo quando:
   // 1. L'utente invia un messaggio
@@ -495,17 +509,17 @@ const Chat = ({
       }
     }, 500);
     
-    // Dopo che l'AI ha finito, cerca prodotti nel messaggio
-    // Usiamo setTimeout per eseguire dopo il render
+    // 🛍️ PRIORITÀ ALLE CARD PRODOTTO: Cerca sempre prodotti nei messaggi AI
     setTimeout(async () => {
       setMessages((prevMessages) => {
         const lastMessage = prevMessages[prevMessages.length - 1];
         
         if (lastMessage && lastMessage.role === 'assistant' && lastMessage.text) {
-          // Esegui fetch in background
+          // Cerca prodotti SEMPRE per mostrare le belle card invece dei link testuali
           extractAndFetchProducts(lastMessage.text).then((products) => {
             if (products.length > 0) {
               console.log(`✅ Found ${products.length} products in AI response:`, products.map(p => p.name));
+              console.log('🎯 Showing product cards instead of text links');
               setMessages((msgs) => {
                 const lastMsg = msgs[msgs.length - 1];
                 if (lastMsg.role === 'assistant') {
@@ -517,7 +531,7 @@ const Chat = ({
                 return msgs;
               });
             } else {
-              console.log('⚠️ No products found in AI response');
+              console.log('⚠️ No products found in AI response - showing text only');
             }
           });
         }
@@ -550,12 +564,9 @@ const Chat = ({
       };
       return [...prevMessages.slice(0, -1), updatedLastMessage];
     });
-    
-    // 🚫 RIMOSSO: Auto-scroll durante la scrittura
-    // L'utente resta dove è
   };
 
-  // 🛍️ FUNZIONE CORRETTA: Ricerca prodotti per handle Shopify
+  // 🛍️ FUNZIONE MIGLIORATA: Ricerca prodotti per handle Shopify
   const extractAndFetchProducts = async (text: string) => {
     try {
       console.log('🔍 Searching for [PRODOTTO: handle] tags in text...');
@@ -589,7 +600,7 @@ const Chat = ({
       
       console.log(`📦 Total products available: ${data.products.length}`);
       
-      // 🎯 MATCHING CORRETTO: l'id è già l'handle di Shopify
+      // 🎯 MATCHING PERFETTO: l'id è già l'handle di Shopify
       const foundProducts = productHandles
         .map(handle => {
           const product = data.products.find((p: Product) => p.id === handle);
@@ -598,16 +609,17 @@ const Chat = ({
             console.log(`🔗 Product URL: ${product.url}`);
           } else {
             console.log(`❌ Product not found by handle: ${handle}`);
-            // Debug: mostra tutti gli ID disponibili per capire eventuali mismatch
-            console.log('🔍 Available product handles:', data.products.slice(0, 5).map(p => p.id));
+            // Debug: mostra alcuni handle disponibili per debugging
+            const availableHandles = data.products.slice(0, 3).map(p => p.id);
+            console.log('🔍 Sample available handles:', availableHandles);
           }
           return product;
         })
         .filter(Boolean); // Rimuovi null/undefined
       
-      console.log(`✅ Total products to display: ${foundProducts.length}`);
+      console.log(`✅ Total products to display as cards: ${foundProducts.length}`);
       
-      return foundProducts.slice(0, 3); // Max 3 prodotti
+      return foundProducts.slice(0, 3); // Max 3 prodotti per performance
     } catch (error) {
       console.error('❌ Error fetching products:', error);
       return [];
@@ -715,7 +727,7 @@ const Chat = ({
             </div>
           </div>
           <div className={styles.chatHeaderStatus}>
-            <span className={styles.chatHeaderBadge}>v. beta</span>
+            <span className={styles.chatHeaderBadge}>Online</span>
           </div>
         </div>
       </div>
@@ -861,7 +873,7 @@ const Chat = ({
               bottom: '90px',
               left: '50%',
               transform: 'translateX(-50%)',
-              background: 'linear-gradient(135deg,#79aea3,#5a9d8f)',
+              backgroundColor: '#007bff',
               color: 'white',
               border: 'none',
               borderRadius: '25px',
