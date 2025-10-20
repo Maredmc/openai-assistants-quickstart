@@ -87,8 +87,35 @@ export const PRODUCT_MAPPING = {
     name: 'Coppia cuscini zero+ Plin',
     description: 'Guanciali lavabili in due taglie evolutive',
     category: 'comfort'
+  },
+
+ // 🛏️ ACCESSORI LETTO
+ 'Kit di Conversione zero+ Dream <-> Earth': {
+    handle: 'kit-di-conversione-zero-piu', // ✅ AGGIUNTO
+    name: 'Kit di Conversione zero+ Dream <-> Earth',
+    description: 'il Kit di Conversione zero+ Dream <-> Earth ti permetterà di cambiare l\'aspetto di zero+ senza mai cambiare letto. Facci sapere quale letto hai e che cosa vuoi ottenere, al resto pensiamo noi! Il letto e altri accessori sono disponibili separatamente.',
+    category: 'kit di conversione'
+  },
+ 'Kit di Conversione zero+ Dream/Earth <--> Duo': {
+    handle: 'kit-di-conversione-zero-dream-o-earth-duo', // ✅ AGGIUNTO
+    name: 'Kit di Conversione zero+ Dream <-> Earth',
+    description: 'Il Kit di Conversione da zero+ Dream/Earth a Duo ti permetterà di passare al letto a castello zero+ Duo, seguendo così il percorso evolutivo dei tuoi bambini. oppure È possibile effettuare la conversione da letto a castello Duo a letto zero+ Earth/Dream contattando il nostro servizio clienti, che sarà felice di assisterti e guidarti nel processo. Contattaci per maggiori informazioni.',
+    category: 'kit di conversione'
+  },
+  'Kit conversione cassettone Letto <--> Contenitore': {
+    handle: 'kit-cassettone-estraibile-zero', // ✅ AGGIUNTO
+    name: 'Kit conversione cassettone Letto <--> Contenitore',
+    description: 'Hai già il cassettone estraibile zero+? Con questo kit potrai acquistare separatamente pannelli o doghe in base alle tue necessità, trasformando quando vuoi il tuo cassettone in un contenitore o in un secondo letto.',
+    category: 'kit di conversione'
+  },
+  'Kit Testiera contenitore zero+ Fun': {
+    handle: 'kit-testiera-contenitore-zero-fun', // ✅ AGGIUNTO
+    name: 'Kit Testiera contenitore zero+ Fun',
+    description: 'Grazie al Kit evolutivo Testiera contenitore zero+ Fun potrai trasformare il tuo letto montessoriano evolutivo zero+ Earth o zero+ Dream in zero+ Fun. Questo kit include la testiera contenitore e tutti gli accessori necessari per effettuare la conversione in modo semplice e veloce.',
+    category: 'kit di conversione'
   }
 };
+
 
 // 🎯 GENERA ISTRUZIONI PER ASSISTENTE (SINCRONIZZATE)
 export function generateAssistantProductInstructions(): string {
