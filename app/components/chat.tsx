@@ -194,7 +194,7 @@ const Chat = ({
   const [threadId, setThreadId] = useState("");
   const [cartCount, setCartCount] = useState(0);
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
-  const [shouldFollowScroll, setShouldFollowScroll] = useState(true);
+  const [showScrollToEnd, setShowScrollToEnd] = useState(false);
 
   // Inizializza cart count
   useEffect(() => {
@@ -206,7 +206,7 @@ const Chat = ({
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   
-  // 🎯 Smart Scroll: Controlla se l'utente è vicino al fondo
+  // 🎯 Controlla se l'utente è vicino al fondo
   const isUserNearBottom = useCallback(() => {
     if (!messagesContainerRef.current) return true;
     const container = messagesContainerRef.current;
@@ -215,17 +215,21 @@ const Chat = ({
     return isNearBottom;
   }, []);
   
-  // 📜 Scroll intelligente che rispetta la posizione utente
-  const smartScrollToBottom = useCallback((force = false) => {
-    if (force || shouldFollowScroll) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [shouldFollowScroll]);
+  // 📜 Scroll semplice al fondo
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
   
-  // 🔄 Aggiorna shouldFollowScroll basato sulla posizione utente
+  // 🔄 Monitora la posizione dello scroll per decidere se mostrare il bottone
   const handleScroll = useCallback(() => {
-    setShouldFollowScroll(isUserNearBottom());
-  }, [isUserNearBottom]);
+    const isNear = isUserNearBottom();
+    // Mostra il bottone solo se:
+    // 1. L'utente non è vicino al fondo E
+    // 2. C'è almeno un messaggio dell'assistente E
+    // 3. L'assistente non sta attualmente scrivendo (per evitare flickering)
+    const shouldShow = !isNear && messages.length > 0 && !chatState.isLoading;
+    setShowScrollToEnd(shouldShow);
+  }, [isUserNearBottom, messages.length, chatState.isLoading]);
   
   // 🎧 Listener per scroll dell'utente
   useEffect(() => {
@@ -236,14 +240,20 @@ const Chat = ({
     }
   }, [handleScroll]);
   
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // 🚫 RIMOSSO: Auto-scroll durante la scrittura del bot
+  // L'utente resta dove è durante la scrittura
   
+  // ✅ Auto-scroll solo quando:
+  // 1. L'utente invia un messaggio
+  // 2. L'assistente INIZIA a rispondere (non durante)
+  // 3. L'utente clicca il bottone per andare al fondo
   useEffect(() => {
-    // 🧠 Smart scroll: segue solo se l'utente è in fondo o è appropriato
-    smartScrollToBottom();
-  }, [messages, chatState.isLoading, smartScrollToBottom]);
+    // Auto-scroll solo per i messaggi dell'utente, non durante la scrittura del bot
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && lastMessage.role === 'user') {
+      scrollToBottom();
+    }
+  }, [messages, scrollToBottom]);
 
   useEffect(() => {
     const createThread = async () => {
@@ -407,9 +417,9 @@ const Chat = ({
     setUserInput("");
     setChatState(prev => ({ ...prev, inputDisabled: true, isLoading: true }));
     
-    // 🎯 Forza scroll quando utente manda messaggio (azione volontaria)
-    setShouldFollowScroll(true);
-    setTimeout(() => smartScrollToBottom(true), 100);
+    // Nascondi il bottone scroll quando l'utente invia un messaggio
+    setShowScrollToEnd(false);
+    
     requestAnimationFrame(() => {
       if (inputRef.current) {
         inputRef.current.style.height = "auto";
@@ -478,6 +488,13 @@ const Chat = ({
     
     setChatState(prev => ({ ...prev, inputDisabled: false, isLoading: false }));
     
+    // Mostra il bottone scroll alla fine del messaggio se l'utente non è in fondo
+    setTimeout(() => {
+      if (!isUserNearBottom()) {
+        setShowScrollToEnd(true);
+      }
+    }, 500);
+    
     // Dopo che l'AI ha finito, cerca prodotti nel messaggio
     // Usiamo setTimeout per eseguire dopo il render
     setTimeout(async () => {
@@ -534,32 +551,30 @@ const Chat = ({
       return [...prevMessages.slice(0, -1), updatedLastMessage];
     });
     
-    // 🌊 Scroll fluido durante la crescita del messaggio
-    if (shouldFollowScroll) {
-      setTimeout(() => smartScrollToBottom(), 50);
-    }
+    // 🚫 RIMOSSO: Auto-scroll durante la scrittura
+    // L'utente resta dove è
   };
 
-  // Funzione per estrarre e fetchare prodotti dal testo dell'AI
+  // 🛍️ FUNZIONE CORRETTA: Ricerca prodotti per handle Shopify
   const extractAndFetchProducts = async (text: string) => {
     try {
-      console.log('🔍 Searching for [PRODOTTO: id] tags in text...');
+      console.log('🔍 Searching for [PRODOTTO: handle] tags in text...');
       
-      // Cerca tag [PRODOTTO: id] nel testo
+      // Cerca tag [PRODOTTO: handle] nel testo
       const productTagRegex = /\[PRODOTTO:\s*([^\]]+)\]/gi;
       const matches = Array.from(text.matchAll(productTagRegex));
       
       if (matches.length === 0) {
-        console.log('⚠️ No [PRODOTTO: id] tags found in AI response');
+        console.log('⚠️ No [PRODOTTO: handle] tags found in AI response');
         return [];
       }
       
       console.log(`🎯 Found ${matches.length} product tags:`, matches.map(m => m[1]));
       
-      // Estrai gli ID dei prodotti
-      const productIds = matches.map(match => match[1].trim());
+      // Estrai gli handle dei prodotti
+      const productHandles = matches.map(match => match[1].trim());
       
-      // Fetch tutti i prodotti
+      // Fetch tutti i prodotti da Shopify
       const response = await fetch('/api/products?action=list');
       if (!response.ok) {
         console.error('❌ Products API failed');
@@ -572,14 +587,19 @@ const Chat = ({
         return [];
       }
       
-      // Trova i prodotti corrispondenti agli ID
-      const foundProducts = productIds
-        .map(id => {
-          const product = data.products.find((p: Product) => p.id === id);
+      console.log(`📦 Total products available: ${data.products.length}`);
+      
+      // 🎯 MATCHING CORRETTO: l'id è già l'handle di Shopify
+      const foundProducts = productHandles
+        .map(handle => {
+          const product = data.products.find((p: Product) => p.id === handle);
           if (product) {
-            console.log(`✅ Found product: ${product.name} (${id})`);
+            console.log(`✅ Found product by handle: ${product.name} (${handle})`);
+            console.log(`🔗 Product URL: ${product.url}`);
           } else {
-            console.log(`❌ Product not found: ${id}`);
+            console.log(`❌ Product not found by handle: ${handle}`);
+            // Debug: mostra tutti gli ID disponibili per capire eventuali mismatch
+            console.log('🔍 Available product handles:', data.products.slice(0, 5).map(p => p.id));
           }
           return product;
         })
@@ -828,36 +848,39 @@ const Chat = ({
           <div ref={messagesEndRef} />
         </div>
         
-        {/* 🔽 Bottone "Torna in fondo" quando utente ha scrollato su */}
-        {!shouldFollowScroll && (
+        {/* 📍 Bottone "Vai alla fine del messaggio" - CENTRATO */}
+        {showScrollToEnd && (
           <div 
-            className={styles.scrollToBottomButton}
+            className={styles.scrollToEndButton}
             onClick={() => {
-              setShouldFollowScroll(true);
-              smartScrollToBottom(true);
+              scrollToBottom();
+              setShowScrollToEnd(false);
             }}
             style={{
               position: 'absolute',
-              bottom: '80px',
-              right: '20px',
+              bottom: '90px',
+              left: '50%',
+              transform: 'translateX(-50%)',
               backgroundColor: '#007bff',
               color: 'white',
               border: 'none',
-              borderRadius: '50%',
-              width: '48px',
-              height: '48px',
+              borderRadius: '25px',
+              padding: '12px 20px',
               cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '20px',
+              gap: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
               zIndex: 1000,
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
+              whiteSpace: 'nowrap'
             }}
-            title="Torna in fondo"
+            title="Vai alla fine del messaggio"
           >
-            ↓
+            <span>Vai alla fine</span>
+            <span style={{ fontSize: '16px' }}>↓</span>
           </div>
         )}
       <div className={styles.composer}>
