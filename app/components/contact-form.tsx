@@ -135,7 +135,7 @@ export default function ContactForm({ chatHistory, onContactDeclined, showAltern
         Vuoi un preventivo personalizzato?
       </div>
       <div className={styles["contact-form-subtitle"]}>
-        Lascia i tuoi contatti e ti richiameremo subito per discutere del tuo progetto!
+        Lascia i tuoi contatti e ti ricontatteremo entro 24 ore per approfondire del tuo progetto!
       </div>
       
       <form onSubmit={handleSubmit} className={styles["contact-form"]}>
