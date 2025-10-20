@@ -42,6 +42,12 @@ export const PRODUCT_MAPPING = {
     description: 'Soppalco mezza altezza per liberare spazio',
     category: 'letto'
   },
+  'zero+ Uppy': {
+    handle: 'letto-a-soppalco-evolutivo-zero-uppy', // ✅ CORRETTO
+    name: 'Letto a soppalco evolutivo zero+ Uppy',
+    description: 'Il letto evolutivo zero+ Uppy è molto più di un letto a soppalco, è un sistema evolutivo che cresce con il tuo bambino e si adatta ai cambiamenti della famiglia.',
+    category: 'letto'
+  },
 
   // 🛏️ ACCESSORI LETTO
   'Sponde': {

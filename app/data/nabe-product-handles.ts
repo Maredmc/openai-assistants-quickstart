@@ -30,6 +30,11 @@ export const NABE_PRODUCT_HANDLES = [
     focus: "soppalco mezza altezza per liberare spazio",
   },
   {
+    id: "letto-a-soppalco-evolutivo-zero-uppy",
+    name: "Letto a soppalco evolutivo zero+ Uppy",
+    focus: "Il letto evolutivo zero+ Uppy è molto più di un letto a soppalco, è un sistema evolutivo che cresce con il tuo bambino e si adatta ai cambiamenti della famiglia.",
+  },
+  {
     id: "materasso-evolutivo-zeropiu",
     name: "Materasso evolutivo zero+",
     focus: "schiume ecologiche a zone per ogni fase di crescita",
