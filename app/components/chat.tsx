@@ -192,10 +192,16 @@ type ChatProps = {
   functionCallHandler?: (
     toolCall: RequiredActionFunctionToolCall
   ) => Promise<string>;
+  initialContext?: {
+    product?: string;
+    price?: string;
+    fromShopify?: boolean;
+  } | null;
 };
 
 const Chat = ({
   functionCallHandler = () => Promise.resolve(""),
+  initialContext = null,
 }: ChatProps) => {
   // Stati consolidati per performance
   const [userInput, setUserInput] = useState("");
@@ -734,45 +740,88 @@ const Chat = ({
       <div className={styles.messages} ref={messagesContainerRef}>
           {messages.length === 0 && (
             <div className={styles.welcomeMessage}>
-              <h2>Benvenutə in Nabè</h2>
-              <p>
-                Sono il tuo consulente specializzato per trovare il letto
-                perfetto per il tuo bambino. Insieme creeremo il rifugio dei
-                sogni ideale!
-              </p>
-              <div className={styles.quickQuestions}>
-                <p className={styles.quickQuestionsTitle}>
-                  Iniziamo con queste domande:
-                </p>
-                <button
-                  onClick={() =>
-                    handlePrefillQuestion("Ho un bambino di 3 anni, che letto mi consigli?")
-                  }
-                  className={styles.quickQuestion}
-                >
-                  Ho un bambino di 3 anni, che letto mi consigli?
-                </button>
-                <button
-                  onClick={() =>
-                    handlePrefillQuestion(
-                      "Ho due figli di 4 e 7 anni, cosa mi consigli di fare?"
-                    )
-                  }
-                  className={styles.quickQuestion}
-                >
-                  Ho due figli di 4 e 7 anni, cosa mi consigli di fare?
-                </button>
-                <button
-                  onClick={() =>
-                    handlePrefillQuestion(
-                      "La cameretta è piccola, che dimensioni mi consigli?"
-                    )
-                  }
-                  className={styles.quickQuestion}
-                >
-                  La cameretta è piccola, che dimensioni mi consigli?
-                </button>
-              </div>
+              {initialContext?.fromShopify ? (
+                // Messaggio personalizzato per clienti che arrivano da Shopify
+                <>
+                  <h2>👋 Ciao! Vedo che stai guardando {initialContext.product || 'un nostro prodotto'}</h2>
+                  <p>
+                    Perfetto! Sono l'assistente AI di Nabè e posso aiutarti con qualsiasi domanda su questo prodotto 
+                    o consigliarti alternative perfette per le tue esigenze.
+                  </p>
+                  <div className={styles.quickQuestions}>
+                    <p className={styles.quickQuestionsTitle}>
+                      Ecco alcune domande che potresti volermi fare:
+                    </p>
+                    <button
+                      onClick={() =>
+                        handlePrefillQuestion(`Mi puoi dare più informazioni su ${initialContext.product || 'questo prodotto'}?`)
+                      }
+                      className={styles.quickQuestion}
+                    >
+                      Mi puoi dare più informazioni su {initialContext.product || 'questo prodotto'}?
+                    </button>
+                    <button
+                      onClick={() =>
+                        handlePrefillQuestion("È adatto per un bambino di [età]? Come si configura?")
+                      }
+                      className={styles.quickQuestion}
+                    >
+                      È adatto per un bambino di [età]? Come si configura?
+                    </button>
+                    <button
+                      onClick={() =>
+                        handlePrefillQuestion("Ci sono alternative o accessori che consigli?")
+                      }
+                      className={styles.quickQuestion}
+                    >
+                      Ci sono alternative o accessori che consigli?
+                    </button>
+                  </div>
+                </>
+              ) : (
+                // Messaggio standard per accesso diretto
+                <>
+                  <h2>Benvenutə in Nabè</h2>
+                  <p>
+                    Sono il tuo consulente specializzato per trovare il letto
+                    perfetto per il tuo bambino. Insieme creeremo il rifugio dei
+                    sogni ideale!
+                  </p>
+                  <div className={styles.quickQuestions}>
+                    <p className={styles.quickQuestionsTitle}>
+                      Iniziamo con queste domande:
+                    </p>
+                    <button
+                      onClick={() =>
+                        handlePrefillQuestion("Ho un bambino di 3 anni, che letto mi consigli?")
+                      }
+                      className={styles.quickQuestion}
+                    >
+                      Ho un bambino di 3 anni, che letto mi consigli?
+                    </button>
+                    <button
+                      onClick={() =>
+                        handlePrefillQuestion(
+                          "Ho due figli di 4 e 7 anni, cosa mi consigli di fare?"
+                        )
+                      }
+                      className={styles.quickQuestion}
+                    >
+                      Ho due figli di 4 e 7 anni, cosa mi consigli di fare?
+                    </button>
+                    <button
+                      onClick={() =>
+                        handlePrefillQuestion(
+                          "La cameretta è piccola, che dimensioni mi consigli?"
+                        )
+                      }
+                      className={styles.quickQuestion}
+                    >
+                      La cameretta è piccola, che dimensioni mi consigli?
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
