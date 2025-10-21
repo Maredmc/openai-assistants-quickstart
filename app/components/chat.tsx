@@ -619,7 +619,7 @@ const Chat = ({
       
       console.log(`✅ Total products to display as cards: ${foundProducts.length}`);
       
-      return foundProducts.slice(0, 3); // Max 3 prodotti per performance
+      return foundProducts.slice(0, 6); // Max 6 prodotti per performance
     } catch (error) {
       console.error('❌ Error fetching products:', error);
       return [];
