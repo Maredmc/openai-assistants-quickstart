@@ -745,7 +745,7 @@ const Chat = ({
                 <>
                   <h2>👋 Ciao! Vedo che stai guardando {initialContext.product || 'un nostro prodotto'}</h2>
                   <p>
-                    Perfetto! Sono l'assistente AI di Nabè e posso aiutarti con qualsiasi domanda su questo prodotto 
+                    Perfetto! Sono l&apos;assistente AI di Nabè e posso aiutarti con qualsiasi domanda su questo prodotto 
                     o consigliarti alternative perfette per le tue esigenze.
                   </p>
                   <div className={styles.quickQuestions}>
