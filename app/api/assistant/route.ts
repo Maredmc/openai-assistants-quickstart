@@ -1,13 +1,60 @@
 // 📁 app/api/assistant/route.ts
 // UNICO ENDPOINT SICURO PER GESTIONE ASSISTENTI
 
-import { AssistantManager, validateAssistantId, type AssistantAction, type AssistantResponse } from "@/app/lib/assistant-manager";
+import {
+  AssistantManager,
+  validateAssistantId,
+  type AssistantAction,
+  type AssistantResponse,
+} from "@/app/lib/assistant-manager";
 import { assistantId } from "@/app/assistant-config";
+import { applyRateLimit, requireAdminAuth, type RateLimitStore } from "@/app/lib/security";
 
 export const runtime = "nodejs";
 
+const ADMIN_RATE_LIMIT_MAX = 20;
+const ADMIN_RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const adminRateLimitStore: RateLimitStore = new Map();
+
+function guardAdminRequest(request: Request): Response | null {
+  const rateResult = applyRateLimit({
+    headers: request.headers,
+    store: adminRateLimitStore,
+    limit: ADMIN_RATE_LIMIT_MAX,
+    windowMs: ADMIN_RATE_LIMIT_WINDOW_MS,
+  });
+
+  if (rateResult.limited) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: "Troppe richieste amministrative. Riprovare più tardi.",
+      }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(rateResult.retryAfter),
+        },
+      }
+    );
+  }
+
+  const authResponse = requireAdminAuth(request);
+  if (authResponse) {
+    return authResponse;
+  }
+
+  return null;
+}
+
 // 📨 GESTIONE POST - TUTTE LE AZIONI IN UN ENDPOINT
 export async function POST(request: Request): Promise<Response> {
+  const guardResponse = guardAdminRequest(request);
+  if (guardResponse) {
+    return guardResponse;
+  }
+
   try {
     // 🔍 PARSING SICURO DELLA RICHIESTA
     let body;
@@ -128,6 +175,11 @@ export async function POST(request: Request): Promise<Response> {
 
 // 📖 GESTIONE GET - INFO E DOCUMENTAZIONE
 export async function GET(request: Request): Promise<Response> {
+  const guardResponse = guardAdminRequest(request);
+  if (guardResponse) {
+    return guardResponse;
+  }
+
   try {
     const url = new URL(request.url);
     const action = url.searchParams.get('action');

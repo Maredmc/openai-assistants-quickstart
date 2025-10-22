@@ -1,6 +1,43 @@
 import { openai } from "@/app/openai";
+import { applyRateLimit, requireAdminAuth, type RateLimitStore } from "@/app/lib/security";
 
 export const runtime = "nodejs";
+
+const ADMIN_CREATE_RATE_LIMIT_MAX = 10;
+const ADMIN_CREATE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const assistantsRateLimitStore: RateLimitStore = new Map();
+
+function guardAdminCreation(request: Request): Response | null {
+  const rateResult = applyRateLimit({
+    headers: request.headers,
+    store: assistantsRateLimitStore,
+    limit: ADMIN_CREATE_RATE_LIMIT_MAX,
+    windowMs: ADMIN_CREATE_RATE_LIMIT_WINDOW_MS,
+  });
+
+  if (rateResult.limited) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: "Richiesta limitata. Riprova più tardi.",
+      }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(rateResult.retryAfter),
+        },
+      }
+    );
+  }
+
+  const authResponse = requireAdminAuth(request);
+  if (authResponse) {
+    return authResponse;
+  }
+
+  return null;
+}
 
 // Istruzioni PERFETTE - VERSIONE FINALE
 const ASSISTANT_INSTRUCTIONS = `Ruolo: Sei l'assistente virtuale ufficiale di Nabè dedicato ai letti evolutivi e accessori Montessori.
@@ -64,7 +101,12 @@ Handle corretti da usare:
 Ogni risposta deve terminare con un invito empatico a ricontattare per dubbi o supporto.`;
 
 // Create a new assistant
-export async function POST() {
+export async function POST(request: Request) {
+  const guardResponse = guardAdminCreation(request);
+  if (guardResponse) {
+    return guardResponse;
+  }
+
   const assistant = await openai.beta.assistants.create({
     instructions: ASSISTANT_INSTRUCTIONS,
     name: "Nabè - Consulente Letti Evolutivi FIXED",

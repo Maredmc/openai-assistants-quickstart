@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@vercel/analytics": "^1.5.0",
-    "next": "14.1.4",
+    "form-data": "^4.0.4",
+    "nanoid": "^5.1.6",
+    "next": "^14.2.33",
     "openai": "^4.46.0",
     "react": "^18",
     "react-dom": "^18",
