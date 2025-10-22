@@ -368,18 +368,18 @@ export function cleanupSecurityCaches() {
   const now = Date.now();
 
   // Cleanup CSRF tokens scaduti
-  for (const [sessionId, data] of csrfTokenStore.entries()) {
+  Array.from(csrfTokenStore.entries()).forEach(([sessionId, data]) => {
     if (now > data.expiresAt) {
       csrfTokenStore.delete(sessionId);
     }
-  }
+  });
 
   // Cleanup blacklist scaduti
-  for (const [ip, expiresAt] of ipBlacklist.entries()) {
+  Array.from(ipBlacklist.entries()).forEach(([ip, expiresAt]) => {
     if (now >= expiresAt) {
       ipBlacklist.delete(ip);
     }
-  }
+  });
 
   secureLog.debug('Security caches cleaned');
 }

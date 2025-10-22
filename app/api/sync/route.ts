@@ -115,7 +115,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // 🔐 Admin auth per operazioni POST (sono operazioni sensibili)
   const authError = requireAdminAuth(request);
   if (authError) {
-    return authError;
+    return NextResponse.json(
+      JSON.parse(await authError.text()),
+      { status: authError.status }
+    );
   }
 
   // 🚦 Rate Limiting
