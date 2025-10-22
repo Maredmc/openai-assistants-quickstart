@@ -1,7 +1,7 @@
 import { Product, ProductsData } from './types';
 
 // Configurazione Shopify
-const SHOPIFY_STORE_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || 'nabecreation.myshopify.com';
+const SHOPIFY_STORE_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || 'nabe-furniture.myshopify.com';
 const SHOPIFY_ADMIN_API_TOKEN = process.env.SHOPIFY_ADMIN_API_TOKEN;
 const SHOPIFY_API_VERSION = '2024-10';
 
@@ -491,7 +491,7 @@ export async function createOrUpdateShopifyCustomer(params: CreateCustomerParams
 
       // Merge dei tag esistenti con i nuovi
       const existingTags = existingCustomer.tags ? existingCustomer.tags.split(',').map(t => t.trim()) : [];
-      const mergedTags = [...new Set([...existingTags, ...tags])];
+      const mergedTags = Array.from(new Set([...existingTags, ...tags]));
       customerData.tags = mergedTags.join(', ');
 
       // 🎯 Logica Newsletter: se era già iscritto o ora richiede newsletter, mantieni true
