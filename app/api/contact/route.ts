@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createOrUpdateShopifyCustomer } from "@/app/lib/shopify";
-import { applyRateLimit, type RateLimitStore } from "@/app/lib/security";
+import {
+  applyRateLimit,
+  type RateLimitStore,
+  isValidEmail,
+  isValidPhone,
+  sanitizeString,
+  isHoneypotFilled,
+  detectBot,
+  validateJSONPayload,
+} from "@/app/lib/security";
+import { secureLog } from "@/app/lib/secure-logger";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -22,18 +32,12 @@ interface ContactRequest {
   privacyAccepted?: boolean;
   newsletterAccepted?: boolean;
   whatsappAccepted?: boolean;
+  honeypot?: string; // Campo nascosto per bot detection
   chatHistory?: Array<{
     role?: string;
     content?: string;
     timestamp?: string;
   }>;
-}
-
-function sanitizeText(value: unknown, maxLength: number): string {
-  if (typeof value !== "string") {
-    return "";
-  }
-  return value.trim().slice(0, maxLength);
 }
 
 function escapeHtml(value: string): string {
@@ -46,7 +50,7 @@ function escapeHtml(value: string): string {
 }
 
 function sanitizeMultiline(value: unknown): string {
-  const text = sanitizeText(value, MAX_MESSAGE_LENGTH);
+  const text = sanitizeString(String(value || ''), MAX_MESSAGE_LENGTH);
   if (!text) {
     return "";
   }
@@ -67,6 +71,17 @@ function formatTimestamp(value: unknown): string {
 }
 
 export async function POST(request: NextRequest) {
+  // 🛡️ Bot Detection
+  const botCheck = detectBot(request.headers);
+  if (botCheck.isBot) {
+    secureLog.warn('Bot detected in contact form', { reason: botCheck.reason });
+    return NextResponse.json(
+      { error: "Richiesta non valida" },
+      { status: 403 }
+    );
+  }
+
+  // 🚦 Rate Limiting
   const rateResult = applyRateLimit({
     headers: request.headers,
     store: contactRateLimitStore,
@@ -75,6 +90,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (rateResult.limited) {
+    secureLog.warn('Contact rate limit exceeded');
     return NextResponse.json(
       { error: "Troppe richieste di contatto. Riprova più tardi." },
       {
@@ -86,29 +102,45 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // 📥 Parse JSON
   let body: ContactRequest;
   try {
     body = await request.json();
   } catch {
+    secureLog.warn('Invalid JSON in contact request');
     return NextResponse.json(
       { error: "Formato JSON non valido" },
       { status: 400 }
     );
   }
 
-  const email = sanitizeText(body.email, MAX_EMAIL_LENGTH);
-  const phone = sanitizeText(body.phone, MAX_PHONE_LENGTH);
+  // 🍯 Honeypot Check
+  if (isHoneypotFilled(body.honeypot)) {
+    secureLog.warn('Honeypot triggered in contact form');
+    // Ritorna successo fake per non far capire al bot
+    return NextResponse.json({
+      success: true,
+      message: "Richiesta di contatto inviata con successo!",
+    });
+  }
+
+  // ✅ Validazione e sanitizzazione input
+  const email = body.email ? sanitizeString(body.email, MAX_EMAIL_LENGTH) : '';
+  const phone = body.phone ? sanitizeString(body.phone, MAX_PHONE_LENGTH) : '';
   const privacyAccepted = body.privacyAccepted === true;
   const newsletterAccepted = body.newsletterAccepted === true;
   const whatsappAccepted = body.whatsappAccepted === true;
 
+  // Validazione privacy
   if (!privacyAccepted) {
+    secureLog.info('Contact form submission without privacy acceptance');
     return NextResponse.json(
       { error: "È necessario accettare la privacy policy." },
       { status: 400 }
     );
   }
 
+  // Validazione contatti
   if (!email && !phone) {
     return NextResponse.json(
       { error: "Inserisci almeno un contatto (email o telefono)." },
@@ -116,9 +148,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (email && !EMAIL_PATTERN.test(email)) {
+  // Validazione email avanzata
+  if (email && !isValidEmail(email)) {
+    secureLog.info('Invalid or disposable email rejected');
     return NextResponse.json(
       { error: "Indirizzo email non valido." },
+      { status: 400 }
+    );
+  }
+
+  // Validazione telefono
+  if (phone && !isValidPhone(phone)) {
+    return NextResponse.json(
+      { error: "Numero di telefono non valido." },
       { status: 400 }
     );
   }
@@ -157,6 +199,7 @@ export async function POST(request: NextRequest) {
   const subjectSuffix = email ? ` - ${email}` : "";
   const requestTimestamp = new Date().toLocaleString("it-IT");
 
+  // 📧 Invio email
   try {
     await resend.emails.send({
       from: "noreply@nabe.it",
@@ -167,7 +210,7 @@ export async function POST(request: NextRequest) {
           <h2 style="color: #1f2937; border-bottom: 2px solid #10b981; padding-bottom: 10px;">
             📞 Nuovo Contatto dalla Chat AI
           </h2>
-          
+
           <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3 style="color: #374151; margin-top: 0;">📋 Dati di Contatto</h3>
             <p><strong>Email:</strong> ${
@@ -212,14 +255,23 @@ export async function POST(request: NextRequest) {
         </div>
       `,
     });
+
+    secureLog.event('contact_email_sent', {
+      hasEmail: Boolean(email),
+      hasPhone: Boolean(phone),
+      newsletterAccepted,
+      whatsappAccepted
+    });
+
   } catch (error) {
-    console.error("Errore nell'invio dell'email di contatto:", error);
+    secureLog.error("Error sending contact email", error);
     return NextResponse.json(
       { error: "Errore nell'invio della richiesta di contatto" },
       { status: 502 }
     );
   }
 
+  // 🛒 Integrazione Shopify
   let shopifyResult: Awaited<ReturnType<typeof createOrUpdateShopifyCustomer>> | null = null;
 
   if (newsletterAccepted || whatsappAccepted) {
@@ -231,20 +283,19 @@ export async function POST(request: NextRequest) {
         whatsappMarketing: whatsappAccepted,
       });
     } catch (error) {
-      console.error("Errore integrazione Shopify:", error);
+      secureLog.error("Shopify integration error", error);
       shopifyResult = { success: false, error: "Errore integrazione Shopify" };
     }
   }
 
-  console.info("Richiesta contatto elaborata", {
-    consent: {
-      privacyAccepted,
-      newsletterAccepted,
-      whatsappAccepted,
-    },
+  // ⚠️ Log sicuro senza PII
+  secureLog.event("contact_form_submitted", {
     hasEmail: Boolean(email),
     hasPhone: Boolean(phone),
-    messages: rawChatHistory.length,
+    newsletterAccepted,
+    whatsappAccepted,
+    messagesCount: rawChatHistory.length,
+    shopifySuccess: shopifyResult?.success || false,
   });
 
   let responseMessage = "Richiesta di contatto inviata con successo!";

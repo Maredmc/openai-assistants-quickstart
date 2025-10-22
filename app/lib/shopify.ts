@@ -1,4 +1,5 @@
 import { Product, ProductsData } from './types';
+import { secureLog, measurePerformance } from './secure-logger';
 
 // Configurazione Shopify
 const SHOPIFY_STORE_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || 'nabe-furniture.myshopify.com';
@@ -74,18 +75,25 @@ const fetchWithTimeout = async (url: string, options: RequestInit, timeout = API
  * Fetch prodotti da Shopify Admin API
  */
 export async function fetchShopifyProducts(forceRefresh = false): Promise<ProductsData> {
+  const perf = measurePerformance();
+
   // Controlla cache
-  if (!forceRefresh && productsCache && 
+  if (!forceRefresh && productsCache &&
       (Date.now() - productsCache.lastSync.getTime()) < CACHE_DURATION) {
-    console.log('📦 Using cached Shopify products data');
+    secureLog.debug('Using cached Shopify products', {
+      totalProducts: productsCache.totalProducts,
+      cacheAge: Date.now() - productsCache.lastSync.getTime()
+    });
     return productsCache;
   }
 
-  console.log('🛍️ Fetching products from Shopify API...');
-  console.log('📋 Filters: status=active, published_status=published (Online Store only)');
+  secureLog.info('Fetching products from Shopify API', {
+    forceRefresh,
+    filters: 'status=active, published_status=published'
+  });
 
   if (!SHOPIFY_ADMIN_API_TOKEN) {
-    console.error('❌ SHOPIFY_ADMIN_API_TOKEN not configured');
+    secureLog.error('SHOPIFY_ADMIN_API_TOKEN not configured');
     return getFallbackProducts();
   }
 
@@ -98,9 +106,9 @@ export async function fetchShopifyProducts(forceRefresh = false): Promise<Produc
     // Fetch tutti i prodotti con paginazione
     while (hasNextPage && pageCount < 20) { // Limite di sicurezza: max 20 pagine (5000 prodotti)
       pageCount++;
-      
+
       const url = buildApiUrl(pageInfo);
-      console.log(`📄 Fetching page ${pageCount}: ${url}`);
+      secureLog.debug(`Fetching page ${pageCount}`, { pageCount });
 
       const response = await fetchWithTimeout(url, {
         method: 'GET',
@@ -111,21 +119,25 @@ export async function fetchShopifyProducts(forceRefresh = false): Promise<Produc
       });
 
       if (!response.ok) {
-        console.error(`❌ Shopify API error: ${response.status} ${response.statusText}`);
-        const errorText = await response.text();
-        console.error('Error details:', errorText);
+        secureLog.error('Shopify API error', {
+          status: response.status,
+          statusText: response.statusText
+        });
         throw new Error(`Shopify API returned ${response.status}`);
       }
 
       const data = await response.json();
-      
+
       if (!data.products || data.products.length === 0) {
-        console.log('✅ No more products to fetch');
+        secureLog.debug('No more products to fetch');
         hasNextPage = false;
         break;
       }
 
-      console.log(`✅ Fetched ${data.products.length} products from page ${pageCount}`);
+      secureLog.debug(`Fetched products from page ${pageCount}`, {
+        count: data.products.length,
+        pageCount
+      });
 
       // Converti prodotti Shopify in formato interno
       for (const shopifyProduct of data.products) {
@@ -154,7 +166,13 @@ export async function fetchShopifyProducts(forceRefresh = false): Promise<Produc
       }
     }
 
-    console.log(`✅ Total products fetched: ${products.length}`);
+    const duration = perf.end('fetchShopifyProducts');
+
+    secureLog.info('Products fetched successfully', {
+      totalProducts: products.length,
+      pages: pageCount,
+      duration: `${duration}ms`
+    });
 
     const result: ProductsData = {
       products,
@@ -163,18 +181,20 @@ export async function fetchShopifyProducts(forceRefresh = false): Promise<Produc
     };
 
     productsCache = result;
-    
+
     return result;
 
   } catch (error) {
-    console.error('❌ Error fetching from Shopify API:', error);
-    
+    secureLog.error('Error fetching from Shopify API', error);
+
     // Ritorna cache se disponibile
     if (productsCache) {
-      console.log('⚠️ Returning cached data due to API error');
+      secureLog.warn('Returning cached data due to API error', {
+        cacheAge: Date.now() - productsCache.lastSync.getTime()
+      });
       return productsCache;
     }
-    
+
     return getFallbackProducts();
   }
 }
@@ -234,15 +254,19 @@ function convertShopifyProduct(shopifyProduct: ShopifyProduct): Product | null {
   try {
     // Verifica che il prodotto sia pubblicato
     if (!shopifyProduct.published_at) {
-      console.warn(`⚠️ Product ${shopifyProduct.title} is not published, skipping`);
+      secureLog.debug('Product not published, skipping', {
+        productId: shopifyProduct.id
+      });
       return null;
     }
-    
+
     // Prendi la prima variante disponibile per il prezzo
     const firstVariant = shopifyProduct.variants[0];
-    
+
     if (!firstVariant) {
-      console.warn(`⚠️ Product ${shopifyProduct.title} has no variants, skipping`);
+      secureLog.debug('Product has no variants, skipping', {
+        productId: shopifyProduct.id
+      });
       return null;
     }
 
@@ -271,7 +295,10 @@ function convertShopifyProduct(shopifyProduct: ShopifyProduct): Product | null {
     };
 
   } catch (error) {
-    console.error(`❌ Error converting product ${shopifyProduct.id}:`, error);
+    secureLog.error('Error converting product', {
+      productId: shopifyProduct.id,
+      error
+    });
     return null;
   }
 }
@@ -313,7 +340,7 @@ function cleanHtmlDescription(html: string): string {
  * Prodotti di fallback in caso di errore
  */
 function getFallbackProducts(): ProductsData {
-  console.log('⚠️ Using fallback products');
+  secureLog.warn('Using fallback products');
   
   const fallbackProducts: Product[] = [
     {
@@ -410,7 +437,7 @@ interface CreateCustomerParams {
  */
 async function findCustomerByEmail(email: string): Promise<ShopifyCustomer | null> {
   if (!SHOPIFY_ADMIN_API_TOKEN) {
-    console.error('❌ SHOPIFY_ADMIN_API_TOKEN not configured');
+    secureLog.error('SHOPIFY_ADMIN_API_TOKEN not configured');
     return null;
   }
 
@@ -426,7 +453,9 @@ async function findCustomerByEmail(email: string): Promise<ShopifyCustomer | nul
     });
 
     if (!response.ok) {
-      console.error(`❌ Shopify Customer Search error: ${response.status}`);
+      secureLog.error('Shopify Customer Search error', {
+        status: response.status
+      });
       return null;
     }
 
@@ -438,7 +467,7 @@ async function findCustomerByEmail(email: string): Promise<ShopifyCustomer | nul
 
     return null;
   } catch (error) {
-    console.error('❌ Error searching customer:', error);
+    secureLog.error('Error searching customer', error);
     return null;
   }
 }
@@ -456,8 +485,10 @@ async function findCustomerByEmail(email: string): Promise<ShopifyCustomer | nul
  * - consent_updated_at: timestamp ISO
  */
 export async function createOrUpdateShopifyCustomer(params: CreateCustomerParams): Promise<{ success: boolean; customerId?: number; error?: string }> {
+  const perf = measurePerformance();
+
   if (!SHOPIFY_ADMIN_API_TOKEN) {
-    console.error('❌ SHOPIFY_ADMIN_API_TOKEN not configured');
+    secureLog.error('SHOPIFY_ADMIN_API_TOKEN not configured');
     return { success: false, error: 'Shopify API token not configured' };
   }
 
@@ -512,7 +543,9 @@ export async function createOrUpdateShopifyCustomer(params: CreateCustomerParams
 
     if (existingCustomer) {
       // Aggiorna customer esistente
-      console.log(`📝 Updating existing customer ${existingCustomer.id}`);
+      secureLog.info('Updating existing Shopify customer', {
+        customerId: existingCustomer.id
+      });
 
       // Merge dei tag esistenti con i nuovi
       const existingTags = existingCustomer.tags ? existingCustomer.tags.split(',').map(t => t.trim()) : [];
@@ -550,7 +583,7 @@ export async function createOrUpdateShopifyCustomer(params: CreateCustomerParams
       customerId = existingCustomer.id;
     } else {
       // Crea nuovo customer
-      console.log(`✨ Creating new customer`);
+      secureLog.info('Creating new Shopify customer');
 
       const url = `https://${SHOPIFY_STORE_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}/customers.json`;
 
@@ -568,23 +601,33 @@ export async function createOrUpdateShopifyCustomer(params: CreateCustomerParams
     }
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ Shopify Customer API error: ${response.status}`, errorText);
+      secureLog.error('Shopify Customer API error', {
+        status: response.status
+      });
       return { success: false, error: `Shopify API error: ${response.status}` };
     }
 
-    console.log(`✅ Customer ${existingCustomer ? 'updated' : 'created'} successfully:`, customerId);
-    console.log(`   - Email: ${params.email || 'N/A'}`);
-    console.log(`   - Phone: ${params.phone || 'N/A'}`);
-    console.log(`   - Newsletter (email_marketing_consent.state): ${customerData.email_marketing_consent?.state === 'subscribed' ? '✅ SUBSCRIBED' : '❌ NOT SUBSCRIBED'}`);
-    console.log(`   - Opt-in Level: ${customerData.email_marketing_consent?.opt_in_level}`);
-    console.log(`   - WhatsApp: ${params.whatsappMarketing ? '✅' : '❌'}`);
-    console.log(`   - Tags: ${tags.join(', ') || 'Nessun tag'}`);
+    const duration = perf.end('createOrUpdateShopifyCustomer');
+
+    // ⚠️ NON loggare MAI email, telefono o altri PII
+    secureLog.shopify(
+      existingCustomer ? 'customer_updated' : 'customer_created',
+      true,
+      {
+        customerId,
+        hasEmail: Boolean(params.email),
+        hasPhone: Boolean(params.phone),
+        newsletterSubscribed: customerData.email_marketing_consent?.state === 'subscribed',
+        whatsappMarketing: params.whatsappMarketing,
+        tagsCount: tags.length,
+        duration: `${duration}ms`
+      }
+    );
 
     return { success: true, customerId };
 
   } catch (error) {
-    console.error('❌ Error creating/updating customer:', error);
+    secureLog.error('Error creating/updating customer', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

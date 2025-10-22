@@ -21,6 +21,7 @@ export default function ContactForm({ chatHistory, onContactDeclined, showAltern
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [newsletterAccepted, setNewsletterAccepted] = useState(false);
   const [whatsappAccepted, setWhatsappAccepted] = useState(false);
+  const [honeypot, setHoneypot] = useState(""); // 🍯 Honeypot field
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState("");
@@ -53,6 +54,7 @@ export default function ContactForm({ chatHistory, onContactDeclined, showAltern
           privacyAccepted,
           newsletterAccepted,
           whatsappAccepted,
+          honeypot, // 🍯 Include honeypot
           chatHistory: chatHistory.map(msg => ({
             ...msg,
             timestamp: msg.timestamp || new Date().toISOString(),
@@ -82,7 +84,10 @@ export default function ContactForm({ chatHistory, onContactDeclined, showAltern
       }
     } catch (err) {
       setError("Errore di connessione. Riprova più tardi.");
-      console.error("Errore nell'invio:", err);
+      // Non loggare errori con dettagli in produzione
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Errore nell'invio:", err);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -139,6 +144,25 @@ export default function ContactForm({ chatHistory, onContactDeclined, showAltern
       </div>
       
       <form onSubmit={handleSubmit} className={styles["contact-form"]}>
+        {/* 🍯 Honeypot field - Hidden from users, attracts bots */}
+        <input
+          type="text"
+          name="website"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          style={{
+            position: "absolute",
+            left: "-9999px",
+            width: "1px",
+            height: "1px",
+            opacity: 0,
+            pointerEvents: "none"
+          }}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+        />
+
         <div className={styles["form-row"]}>
           <div className={styles["form-group"]}>
             <label className={styles["form-label"]} htmlFor="email">
@@ -154,7 +178,7 @@ export default function ContactForm({ chatHistory, onContactDeclined, showAltern
               disabled={isSubmitting}
             />
           </div>
-          
+
           <div className={styles["form-group"]}>
             <label className={styles["form-label"]} htmlFor="phone">
               Telefono
