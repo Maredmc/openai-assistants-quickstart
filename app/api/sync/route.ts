@@ -5,11 +5,32 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AssistantManager } from '@/app/lib/assistant-manager';
 import { validateProductSync, getSyncReport, PRODUCT_MAPPING, ALL_PRODUCT_NAMES } from '@/app/lib/product-sync';
 import { assistantId } from '@/app/assistant-config';
+import { applyRateLimit, RATE_LIMIT_CONFIGS, type RateLimitStore, requireAdminAuth } from '@/app/lib/security';
+import { secureLog } from '@/app/lib/secure-logger';
 
 export const runtime = "nodejs";
 
+const syncRateLimitStore: RateLimitStore = new Map();
+
 // 🔍 GET - Diagnosi e status
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  // 🚦 Rate Limiting
+  const rateResult = applyRateLimit({
+    headers: request.headers,
+    store: syncRateLimitStore,
+    ...RATE_LIMIT_CONFIGS.normal,
+  });
+
+  if (rateResult.limited) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateResult.retryAfter) },
+      }
+    );
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action') || 'status';
@@ -19,7 +40,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         // Status generale sincronizzazione
         const validation = validateProductSync();
         const report = getSyncReport();
-        
+
         return NextResponse.json({
           success: true,
           isSync: validation.isSync,
@@ -45,22 +66,22 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       case 'report':
         // Report dettagliato
         const detailedValidation = validateProductSync();
-        
+
         // Test API prodotti
         let apiStatus = { available: false, error: null, products: 0, lastSync: null };
         try {
           const apiResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/products?action=status`);
           if (apiResponse.ok) {
             const apiData = await apiResponse.json();
-            apiStatus = { 
-              available: true, 
-              error: null, 
+            apiStatus = {
+              available: true,
+              error: null,
               products: apiData.totalProducts || 0,
               lastSync: apiData.lastSync
             };
           }
         } catch (error) {
-          apiStatus.error = error.message;
+          apiStatus.error = error instanceof Error ? error.message : 'Unknown error';
         }
 
         return NextResponse.json({
@@ -81,7 +102,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
   } catch (error) {
-    console.error('❌ Error in sync GET:', error);
+    secureLog.error('Error in sync GET', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error'
@@ -91,6 +112,29 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 // 🔄 POST - Operazioni di sincronizzazione
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // 🔐 Admin auth per operazioni POST (sono operazioni sensibili)
+  const authError = requireAdminAuth(request);
+  if (authError) {
+    return authError;
+  }
+
+  // 🚦 Rate Limiting
+  const rateResult = applyRateLimit({
+    headers: request.headers,
+    store: syncRateLimitStore,
+    ...RATE_LIMIT_CONFIGS.strict,
+  });
+
+  if (rateResult.limited) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateResult.retryAfter) },
+      }
+    );
+  }
+
   try {
     const body = await request.json();
     const { action, assistantId: targetAssistantId } = body;
@@ -110,7 +154,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           }
 
           const result = await response.json();
-          
+
           return NextResponse.json({
             success: true,
             message: 'Products synchronized successfully from Shopify',
@@ -123,7 +167,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         } catch (error) {
           return NextResponse.json({
             success: false,
-            error: `Failed to sync products: ${error.message}`
+            error: `Failed to sync products`
           }, { status: 500 });
         }
 
@@ -131,7 +175,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         // Aggiorna assistente con nuova configurazione
         try {
           const updateAssistantId = targetAssistantId || assistantId;
-          
+
           if (!updateAssistantId) {
             return NextResponse.json({
               success: false,
@@ -140,7 +184,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           }
 
           const result = await AssistantManager.update(updateAssistantId);
-          
+
           if (result.success) {
             return NextResponse.json({
               success: true,
@@ -157,7 +201,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         } catch (error) {
           return NextResponse.json({
             success: false,
-            error: `Failed to update assistant: ${error.message}`
+            error: `Failed to update assistant`
           }, { status: 500 });
         }
 
@@ -192,7 +236,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         } catch (error) {
           results.productsSync = {
             success: false,
-            message: `Products sync failed: ${error.message}`,
+            message: `Products sync failed`,
             details: null
           };
         }
@@ -218,7 +262,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         } catch (error) {
           results.assistantUpdate = {
             success: false,
-            message: `Assistant update failed: ${error.message}`,
+            message: `Assistant update failed`,
             details: null
           };
         }
@@ -249,7 +293,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
   } catch (error) {
-    console.error('❌ Error in sync POST:', error);
+    secureLog.error('Error in sync POST', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error'

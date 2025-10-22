@@ -1,7 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchShopifyProducts, searchShopifyProducts, getShopifyCacheStatus } from "@/app/lib/shopify";
+import { applyRateLimit, RATE_LIMIT_CONFIGS, type RateLimitStore } from "@/app/lib/security";
+import { secureLog } from "@/app/lib/secure-logger";
+
+const productsRateLimitStore: RateLimitStore = new Map();
 
 export async function GET(request: NextRequest) {
+  // 🚦 Rate Limiting
+  const rateResult = applyRateLimit({
+    headers: request.headers,
+    store: productsRateLimitStore,
+    ...RATE_LIMIT_CONFIGS.generous,
+  });
+
+  if (rateResult.limited) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateResult.retryAfter) },
+      }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const action = searchParams.get('action') || 'list';
   const query = searchParams.get('q') || '';
@@ -9,7 +30,7 @@ export async function GET(request: NextRequest) {
   const forceRefresh = searchParams.get('refresh') === 'true';
 
   try {
-    console.log(`📡 Products API called - Action: ${action}, Query: "${query}"`);
+    secureLog.apiCall('GET', `/api/products?action=${action}`);
 
     switch (action) {
       case 'status':
@@ -22,7 +43,7 @@ export async function GET(request: NextRequest) {
 
       case 'sync':
         // Forza sincronizzazione prodotti da Shopify
-        console.log('🔄 Force syncing products from Shopify...');
+        secureLog.info('Force syncing products from Shopify');
         const syncResult = await fetchShopifyProducts(true);
         return NextResponse.json({
           success: true,
@@ -78,23 +99,39 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('❌ Error in products API:', error);
+    secureLog.error('Error in products API', error);
     return NextResponse.json({
       success: false,
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Internal server error'
     }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
+  // 🚦 Rate Limiting (più restrittivo per POST)
+  const rateResult = applyRateLimit({
+    headers: request.headers,
+    store: productsRateLimitStore,
+    ...RATE_LIMIT_CONFIGS.normal,
+  });
+
+  if (rateResult.limited) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateResult.retryAfter) },
+      }
+    );
+  }
+
   try {
     const { action } = await request.json();
 
     if (action === 'sync') {
-      console.log('🔄 Manual sync triggered via POST');
+      secureLog.info('Manual sync triggered via POST');
       const syncResult = await fetchShopifyProducts(true);
-      
+
       return NextResponse.json({
         success: true,
         message: 'Manual sync completed successfully from Shopify',
@@ -109,7 +146,7 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
 
   } catch (error) {
-    console.error('❌ Error in products POST API:', error);
+    secureLog.error('Error in products POST API', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error'
