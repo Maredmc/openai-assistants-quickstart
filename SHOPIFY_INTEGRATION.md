@@ -4,6 +4,32 @@
 
 Integrazione per sincronizzare automaticamente gli utenti che si iscrivono alla newsletter o a WhatsApp dal chatbot direttamente nel tuo store Shopify come clienti.
 
+## ❗ **CORREZIONE IMPORTANTE: Email Subscription Status**
+
+🐛 **Problema identificato**: Anche con `accepts_marketing: true`, i customer risultavano "Not subscribed" in Shopify.
+
+✅ **Soluzione implementata**: Aggiunto campo `marketing_opt_in_level: 'confirmed_opt_in'` che è **ESSENZIALE** per far sì che il customer risulti come "**Subscribed**" in Shopify Admin.
+
+### Prima della correzione:
+```javascript
+// ❌ PROBLEMA: Customer creato ma "Not subscribed"
+customerData = {
+  accepts_marketing: true
+  // marketing_opt_in_level: MANCAVA!
+}
+```
+
+### Dopo la correzione:
+```javascript
+// ✅ RISOLTO: Customer risulta "Subscribed"
+customerData = {
+  accepts_marketing: true,
+  marketing_opt_in_level: 'confirmed_opt_in'  // 🎯 CHIAVE!
+}
+```
+
+🎯 **Risultato**: Ora i customer che selezionano Newsletter risultano correttamente come "**Subscribed**" in Shopify Admin > Customers.
+
 ## 🎯 **Logica Newsletter vs WhatsApp (CORRETTA)**
 
 ### 📧 Solo Newsletter

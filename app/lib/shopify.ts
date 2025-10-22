@@ -387,6 +387,7 @@ interface ShopifyCustomer {
   first_name?: string;
   last_name?: string;
   accepts_marketing?: boolean;
+  marketing_opt_in_level?: string;
   tags?: string;
   note?: string;
 }
@@ -478,6 +479,7 @@ export async function createOrUpdateShopifyCustomer(params: CreateCustomerParams
       first_name: params.firstName,
       last_name: params.lastName,
       accepts_marketing: params.acceptsMarketing, // true SOLO se Newsletter selezionata
+      marketing_opt_in_level: params.acceptsMarketing ? 'confirmed_opt_in' : undefined, // 🎯 CHIAVE: questo fa sì che risulti "Subscribed"
       tags: tags.join(', '),
       note: `Iscritto da chat AI il ${new Date().toLocaleDateString('it-IT')}. Servizi: ${tags.join(', ') || 'Nessuno'}`,
     };
@@ -496,6 +498,9 @@ export async function createOrUpdateShopifyCustomer(params: CreateCustomerParams
 
       // 🎯 Logica Newsletter: se era già iscritto o ora richiede newsletter, mantieni true
       customerData.accepts_marketing = existingCustomer.accepts_marketing || params.acceptsMarketing;
+      
+      // 🎯 IMPORTANTE: Imposta marketing_opt_in_level solo se accetta marketing (per risultare "Subscribed")
+      customerData.marketing_opt_in_level = customerData.accepts_marketing ? 'confirmed_opt_in' : undefined;
 
       const url = `https://${SHOPIFY_STORE_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}/customers/${existingCustomer.id}.json`;
 
@@ -538,6 +543,7 @@ export async function createOrUpdateShopifyCustomer(params: CreateCustomerParams
     console.log(`   - Email: ${params.email || 'N/A'}`);
     console.log(`   - Phone: ${params.phone || 'N/A'}`);
     console.log(`   - Newsletter (accepts_marketing): ${customerData.accepts_marketing ? '✅' : '❌'}`);
+    console.log(`   - Email Status: ${customerData.marketing_opt_in_level ? 'Subscribed (✅ confirmed_opt_in)' : 'Not Subscribed'}`);
     console.log(`   - WhatsApp: ${params.whatsappMarketing ? '✅' : '❌'}`);
     console.log(`   - Tags: ${tags.join(', ') || 'Nessun tag'}`);
 
