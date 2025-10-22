@@ -376,3 +376,171 @@ export function getShopifyCacheStatus(): { isCached: boolean; lastSync?: Date; t
     totalProducts: productsCache.totalProducts
   };
 }
+
+/**
+ * Interfacce per Customer API
+ */
+interface ShopifyCustomer {
+  id?: number;
+  email?: string;
+  phone?: string;
+  first_name?: string;
+  last_name?: string;
+  accepts_marketing?: boolean;
+  tags?: string;
+  note?: string;
+}
+
+interface CreateCustomerParams {
+  email?: string;
+  phone?: string;
+  acceptsMarketing: boolean;
+  whatsappMarketing: boolean;
+  firstName?: string;
+  lastName?: string;
+}
+
+/**
+ * Cerca un customer esistente per email
+ */
+async function findCustomerByEmail(email: string): Promise<ShopifyCustomer | null> {
+  if (!SHOPIFY_ADMIN_API_TOKEN) {
+    console.error('❌ SHOPIFY_ADMIN_API_TOKEN not configured');
+    return null;
+  }
+
+  try {
+    const url = `https://${SHOPIFY_STORE_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}/customers/search.json?query=email:${encodeURIComponent(email)}`;
+
+    const response = await fetchWithTimeout(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': SHOPIFY_ADMIN_API_TOKEN,
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`❌ Shopify Customer Search error: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+
+    if (data.customers && data.customers.length > 0) {
+      return data.customers[0];
+    }
+
+    return null;
+  } catch (error) {
+    console.error('❌ Error searching customer:', error);
+    return null;
+  }
+}
+
+/**
+ * Crea o aggiorna un customer in Shopify
+ */
+export async function createOrUpdateShopifyCustomer(params: CreateCustomerParams): Promise<{ success: boolean; customerId?: number; error?: string }> {
+  if (!SHOPIFY_ADMIN_API_TOKEN) {
+    console.error('❌ SHOPIFY_ADMIN_API_TOKEN not configured');
+    return { success: false, error: 'Shopify API token not configured' };
+  }
+
+  if (!params.email && !params.phone) {
+    return { success: false, error: 'Email or phone required' };
+  }
+
+  try {
+    // Cerca customer esistente per email
+    let existingCustomer: ShopifyCustomer | null = null;
+
+    if (params.email) {
+      existingCustomer = await findCustomerByEmail(params.email);
+    }
+
+    const tags: string[] = [];
+
+    // Aggiungi tag WhatsApp se richiesto
+    if (params.whatsappMarketing) {
+      tags.push('WhatsApp');
+    }
+
+    // Aggiungi tag Newsletter se richiesto
+    if (params.acceptsMarketing) {
+      tags.push('Newsletter');
+    }
+
+    const customerData: ShopifyCustomer = {
+      email: params.email,
+      phone: params.phone,
+      first_name: params.firstName,
+      last_name: params.lastName,
+      accepts_marketing: params.acceptsMarketing,
+      tags: tags.join(', '),
+      note: `Iscritto da chat AI il ${new Date().toLocaleDateString('it-IT')}`,
+    };
+
+    let response;
+    let customerId: number;
+
+    if (existingCustomer) {
+      // Aggiorna customer esistente
+      console.log(`📝 Updating existing customer ${existingCustomer.id}`);
+
+      // Merge dei tag esistenti con i nuovi
+      const existingTags = existingCustomer.tags ? existingCustomer.tags.split(',').map(t => t.trim()) : [];
+      const mergedTags = [...new Set([...existingTags, ...tags])];
+      customerData.tags = mergedTags.join(', ');
+
+      const url = `https://${SHOPIFY_STORE_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}/customers/${existingCustomer.id}.json`;
+
+      response = await fetchWithTimeout(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': SHOPIFY_ADMIN_API_TOKEN,
+        },
+        body: JSON.stringify({ customer: customerData }),
+      });
+
+      customerId = existingCustomer.id;
+    } else {
+      // Crea nuovo customer
+      console.log(`✨ Creating new customer`);
+
+      const url = `https://${SHOPIFY_STORE_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}/customers.json`;
+
+      response = await fetchWithTimeout(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': SHOPIFY_ADMIN_API_TOKEN,
+        },
+        body: JSON.stringify({ customer: customerData }),
+      });
+
+      const data = await response.json();
+      customerId = data.customer?.id;
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Shopify Customer API error: ${response.status}`, errorText);
+      return { success: false, error: `Shopify API error: ${response.status}` };
+    }
+
+    console.log(`✅ Customer ${existingCustomer ? 'updated' : 'created'} successfully:`, customerId);
+    console.log(`   - Email: ${params.email || 'N/A'}`);
+    console.log(`   - Phone: ${params.phone || 'N/A'}`);
+    console.log(`   - Newsletter: ${params.acceptsMarketing ? '✅' : '❌'}`);
+    console.log(`   - WhatsApp: ${params.whatsappMarketing ? '✅' : '❌'}`);
+    console.log(`   - Tags: ${tags.join(', ') || 'Nessun tag'}`);
+
+    return { success: true, customerId };
+
+  } catch (error) {
+    console.error('❌ Error creating/updating customer:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}

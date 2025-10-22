@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+import { createOrUpdateShopifyCustomer } from "@/app/lib/shopify";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -92,8 +93,27 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Email inviata con successo:', emailResponse);
 
-    return NextResponse.json({ 
-      success: true, 
+    // Crea/aggiorna customer in Shopify se richiesto
+    if (newsletterAccepted || whatsappAccepted) {
+      console.log('🛍️ Creating/updating customer in Shopify...');
+
+      const shopifyResult = await createOrUpdateShopifyCustomer({
+        email: email || undefined,
+        phone: phone || undefined,
+        acceptsMarketing: newsletterAccepted,
+        whatsappMarketing: whatsappAccepted,
+      });
+
+      if (shopifyResult.success) {
+        console.log(`✅ Customer ${shopifyResult.customerId} created/updated in Shopify`);
+      } else {
+        console.error('⚠️ Failed to create/update customer in Shopify:', shopifyResult.error);
+        // Non blocca l'operazione, continua comunque
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
       message: "Richiesta di contatto inviata con successo!"
     });
 
