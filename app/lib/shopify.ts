@@ -386,8 +386,12 @@ interface ShopifyCustomer {
   phone?: string;
   first_name?: string;
   last_name?: string;
-  accepts_marketing?: boolean;
-  marketing_opt_in_level?: string;
+  accepts_marketing?: boolean; // Deprecato, mantenuto per compatibilità
+  email_marketing_consent?: {
+    state: 'subscribed' | 'not_subscribed' | 'unsubscribed';
+    opt_in_level: 'confirmed_opt_in' | 'single_opt_in' | 'unknown';
+    consent_updated_at: string;
+  };
   tags?: string;
   note?: string;
 }
@@ -441,6 +445,15 @@ async function findCustomerByEmail(email: string): Promise<ShopifyCustomer | nul
 
 /**
  * Crea o aggiorna un customer in Shopify
+ * 
+ * IMPORTANTE: Usa il nuovo formato email_marketing_consent (Shopify 2022+)
+ * invece del vecchio accepts_marketing per garantire che il customer
+ * risulti correttamente come "Subscribed" in Shopify Admin.
+ * 
+ * Migrazione da accepts_marketing (deprecato) a email_marketing_consent:
+ * - state: 'subscribed' | 'not_subscribed' | 'unsubscribed'
+ * - opt_in_level: 'confirmed_opt_in' | 'single_opt_in' | 'unknown'
+ * - consent_updated_at: timestamp ISO
  */
 export async function createOrUpdateShopifyCustomer(params: CreateCustomerParams): Promise<{ success: boolean; customerId?: number; error?: string }> {
   if (!SHOPIFY_ADMIN_API_TOKEN) {
@@ -478,8 +491,18 @@ export async function createOrUpdateShopifyCustomer(params: CreateCustomerParams
       phone: params.phone,
       first_name: params.firstName,
       last_name: params.lastName,
-      accepts_marketing: params.acceptsMarketing, // true SOLO se Newsletter selezionata
-      marketing_opt_in_level: params.acceptsMarketing ? 'confirmed_opt_in' : undefined, // 🎯 CHIAVE: questo fa sì che risulti "Subscribed"
+      // 🎯 NUOVO FORMATO SHOPIFY 2022+ (sostituisce accepts_marketing)
+      email_marketing_consent: params.acceptsMarketing ? {
+        state: 'subscribed',
+        opt_in_level: 'confirmed_opt_in',
+        consent_updated_at: new Date().toISOString()
+      } : {
+        state: 'not_subscribed',
+        opt_in_level: 'unknown',
+        consent_updated_at: new Date().toISOString()
+      },
+      // Manteniamo anche il vecchio campo per compatibilità
+      accepts_marketing: params.acceptsMarketing,
       tags: tags.join(', '),
       note: `Iscritto da chat AI il ${new Date().toLocaleDateString('it-IT')}. Servizi: ${tags.join(', ') || 'Nessuno'}`,
     };
@@ -497,10 +520,21 @@ export async function createOrUpdateShopifyCustomer(params: CreateCustomerParams
       customerData.tags = mergedTags.join(', ');
 
       // 🎯 Logica Newsletter: se era già iscritto o ora richiede newsletter, mantieni true
-      customerData.accepts_marketing = existingCustomer.accepts_marketing || params.acceptsMarketing;
+      const shouldAcceptMarketing = (existingCustomer.accepts_marketing || existingCustomer.email_marketing_consent?.state === 'subscribed') || params.acceptsMarketing;
       
-      // 🎯 IMPORTANTE: Imposta marketing_opt_in_level solo se accetta marketing (per risultare "Subscribed")
-      customerData.marketing_opt_in_level = customerData.accepts_marketing ? 'confirmed_opt_in' : undefined;
+      // 🎯 NUOVO: Usa email_marketing_consent invece del vecchio formato
+      customerData.email_marketing_consent = shouldAcceptMarketing ? {
+        state: 'subscribed',
+        opt_in_level: 'confirmed_opt_in',
+        consent_updated_at: new Date().toISOString()
+      } : {
+        state: 'not_subscribed',
+        opt_in_level: 'unknown',
+        consent_updated_at: new Date().toISOString()
+      };
+      
+      // Mantieni anche il vecchio campo per compatibilità
+      customerData.accepts_marketing = shouldAcceptMarketing;
 
       const url = `https://${SHOPIFY_STORE_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}/customers/${existingCustomer.id}.json`;
 
@@ -542,8 +576,8 @@ export async function createOrUpdateShopifyCustomer(params: CreateCustomerParams
     console.log(`✅ Customer ${existingCustomer ? 'updated' : 'created'} successfully:`, customerId);
     console.log(`   - Email: ${params.email || 'N/A'}`);
     console.log(`   - Phone: ${params.phone || 'N/A'}`);
-    console.log(`   - Newsletter (accepts_marketing): ${customerData.accepts_marketing ? '✅' : '❌'}`);
-    console.log(`   - Email Status: ${customerData.marketing_opt_in_level ? 'Subscribed (✅ confirmed_opt_in)' : 'Not Subscribed'}`);
+    console.log(`   - Newsletter (email_marketing_consent.state): ${customerData.email_marketing_consent?.state === 'subscribed' ? '✅ SUBSCRIBED' : '❌ NOT SUBSCRIBED'}`);
+    console.log(`   - Opt-in Level: ${customerData.email_marketing_consent?.opt_in_level}`);
     console.log(`   - WhatsApp: ${params.whatsappMarketing ? '✅' : '❌'}`);
     console.log(`   - Tags: ${tags.join(', ') || 'Nessun tag'}`);
 

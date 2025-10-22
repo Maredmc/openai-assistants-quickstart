@@ -8,23 +8,29 @@ Integrazione per sincronizzare automaticamente gli utenti che si iscrivono alla 
 
 🐛 **Problema identificato**: Anche con `accepts_marketing: true`, i customer risultavano "Not subscribed" in Shopify.
 
-✅ **Soluzione implementata**: Aggiunto campo `marketing_opt_in_level: 'confirmed_opt_in'` che è **ESSENZIALE** per far sì che il customer risulti come "**Subscribed**" in Shopify Admin.
+✅ **Causa trovata**: Shopify ha **deprecato** `accepts_marketing` ad aprile 2022 in favore del nuovo sistema `email_marketing_consent`.
 
-### Prima della correzione:
+✅ **Soluzione implementata**: Migrato al nuovo formato Shopify 2022+ che è **ESSENZIALE** per far sì che il customer risulti come "**Subscribed**".
+
+### Prima della correzione (OBSOLETO):
 ```javascript
-// ❌ PROBLEMA: Customer creato ma "Not subscribed"
+// ❌ PROBLEMA: Formato deprecato da aprile 2022
 customerData = {
-  accepts_marketing: true
-  // marketing_opt_in_level: MANCAVA!
+  accepts_marketing: true,
+  marketing_opt_in_level: 'confirmed_opt_in'  // Non funziona più!
 }
 ```
 
-### Dopo la correzione:
+### Dopo la correzione (SHOPIFY 2022+):
 ```javascript
-// ✅ RISOLTO: Customer risulta "Subscribed"
+// ✅ RISOLTO: Nuovo formato email_marketing_consent
 customerData = {
-  accepts_marketing: true,
-  marketing_opt_in_level: 'confirmed_opt_in'  // 🎯 CHIAVE!
+  email_marketing_consent: {
+    state: 'subscribed',  // 🎯 CHIAVE!
+    opt_in_level: 'confirmed_opt_in',
+    consent_updated_at: '2025-10-22T12:00:00.000Z'
+  },
+  accepts_marketing: true  // Mantenuto per compatibilità
 }
 ```
 
@@ -33,19 +39,20 @@ customerData = {
 ## 🎯 **Logica Newsletter vs WhatsApp (CORRETTA)**
 
 ### 📧 Solo Newsletter
-- `accepts_marketing: true` (iscritto al marketing email)
+- `email_marketing_consent.state: 'subscribed'` (**NUOVO FORMATO 2022+**)
+- `email_marketing_consent.opt_in_level: 'confirmed_opt_in'`
 - Tag: `Newsletter`
-- `marketing_opt_in_level: confirmed_opt_in`
+- `accepts_marketing: true` (mantenuto per compatibilità)
 
 ### 📱 Solo WhatsApp  
-- `accepts_marketing: false` (NON iscritto al marketing email - unsubscribed)
+- `email_marketing_consent.state: 'not_subscribed'` (NON iscritto al marketing email)
 - Tag: `Whatsapp`
 - Note: Il cliente viene comunque creato ma rimane unsubscribed dalle email
 
 ### 📧📱 Newsletter + WhatsApp
-- `accepts_marketing: true` (iscritto al marketing email)
+- `email_marketing_consent.state: 'subscribed'` (iscritto al marketing email)
+- `email_marketing_consent.opt_in_level: 'confirmed_opt_in'`
 - Tag: `Newsletter, Whatsapp`
-- `marketing_opt_in_level: confirmed_opt_in`
 
 ## 🔧 **Configurazione**
 
@@ -58,6 +65,7 @@ SHOPIFY_ADMIN_API_TOKEN="shpat_123....."
 ### 2. Libreria utilizzata
 - **File:** `/app/lib/shopify.ts` (estesa con funzioni customer)
 - **Funzione:** `createOrUpdateShopifyCustomer()`
+- **API Version:** 2024-10 (supporta nuovo formato `email_marketing_consent`)
 - **Riutilizza:** `fetchWithTimeout()` esistente per timeout API
 
 ### 3. API Endpoints
