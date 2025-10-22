@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
-import { createOrUpdateShopifyCustomer } from "../../lib/shopify-integration";
+import { createOrUpdateShopifyCustomer } from "@/app/lib/shopify";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -30,27 +30,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 🏪 INTEGRAZIONE SHOPIFY: Se l'utente ha accettato newsletter o WhatsApp, lo aggiungiamo a Shopify
-    let shopifyResult = null;
-    if (newsletterAccepted || whatsappAccepted) {
-      console.log('🏪 Iniziando integrazione Shopify...');
-      try {
-        shopifyResult = await createOrUpdateShopifyCustomer({
-          email: email || undefined,
-          phone: phone || undefined,
-          firstName: undefined, // Potremmo aggiungere questi campi al form in futuro
-          lastName: undefined,
-          newsletterAccepted,
-          whatsappAccepted
-        });
-        
-        console.log('✅ Integrazione Shopify completata:', shopifyResult);
-      } catch (shopifyError) {
-        console.error('⚠️ Errore Shopify (non bloccante):', shopifyError);
-        // Non blocchiamo il processo se Shopify fallisce
-      }
-    }
-
     // Formattazione della cronologia chat per l'email
     const chatHistoryHtml = chatHistory
       .map((message, index) => {
@@ -72,36 +51,6 @@ export async function POST(request: NextRequest) {
       })
       .join("");
 
-    // 📧 LOGICA EMAIL: Mostra che servizi sono stati attivati
-    const servicesActivated = [];
-    if (newsletterAccepted) servicesActivated.push('Newsletter (marketing email attivo)');
-    if (whatsappAccepted) servicesActivated.push('WhatsApp (SMS marketing)');
-    
-    const servicesText = servicesActivated.length > 0 
-      ? `<br><strong>🎯 Servizi richiesti:</strong> ${servicesActivated.join(', ')}` 
-      : '';
-
-    // Aggiungiamo informazioni sull'integrazione Shopify nell'email
-    const shopifySection = shopifyResult ? `
-      <div style="background-color: ${shopifyResult.success ? '#ecfdf5' : '#fef2f2'}; padding: 15px; border-radius: 8px; margin-top: 20px;">
-        <h4 style="color: ${shopifyResult.success ? '#065f46' : '#991b1b'}; margin-top: 0;">
-          🏪 Integrazione Shopify
-        </h4>
-        <p style="margin: 0; color: ${shopifyResult.success ? '#065f46' : '#991b1b'};">
-          <strong>Stato:</strong> ${shopifyResult.success ? '✅ Completata' : '❌ Fallita'}<br>
-          <strong>Dettagli:</strong> ${shopifyResult.message}<br>
-          ${shopifyResult.customerId ? `<strong>ID Cliente:</strong> ${shopifyResult.customerId}<br>` : ''}
-          ${shopifyResult.isNewCustomer !== undefined ? `<strong>Tipo:</strong> ${shopifyResult.isNewCustomer ? 'Nuovo cliente' : 'Cliente esistente aggiornato'}<br>` : ''}
-          ${servicesText}
-          ${shopifyResult.alreadySubscribed ? `
-            <br><strong>📋 Stato precedente:</strong><br>
-            - Newsletter: ${shopifyResult.alreadySubscribed.newsletter ? '✅ Già iscritto' : '❌ Non iscritto'}<br>
-            - WhatsApp: ${shopifyResult.alreadySubscribed.whatsapp ? '✅ Già iscritto' : '❌ Non iscritto'}
-          ` : ''}
-        </p>
-      </div>
-    ` : '';
-
     // Invio email
     console.log('📧 Tentativo invio email a:', "giulio@nabecreation.com");
     console.log('📋 Dati ricevuti:', { email, phone, privacyAccepted, newsletterAccepted, whatsappAccepted });
@@ -109,7 +58,7 @@ export async function POST(request: NextRequest) {
     const emailResponse = await resend.emails.send({
       from: "noreply@nabe.it", // Dominio verificato su Resend
       to: ["giulio@nabecreation.com"],
-      subject: `🔥 Nuovo contatto dalla chat AI - ${email}${shopifyResult?.success ? ' 🏪' : ''}`,
+      subject: `🔥 Nuovo contatto dalla chat AI - ${email}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
           <h2 style="color: #1f2937; border-bottom: 2px solid #10b981; padding-bottom: 10px;">
@@ -129,8 +78,6 @@ export async function POST(request: NextRequest) {
             ${!newsletterAccepted && whatsappAccepted ? '<p><em>⚠️ Solo WhatsApp richiesto: accepts_marketing = false (unsubscribed)</em></p>' : ''}
           </div>
 
-          ${shopifySection}
-
           <div style="margin: 30px 0;">
             <h3 style="color: #374151;">💬 Cronologia Conversazione</h3>
             ${chatHistoryHtml}
@@ -147,16 +94,33 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Email inviata con successo:', emailResponse);
 
+    // 🏪 Crea/aggiorna customer in Shopify se richiesto
+    let shopifyResult = null;
+    if (newsletterAccepted || whatsappAccepted) {
+      console.log('🛍️ Creating/updating customer in Shopify...');
+
+      shopifyResult = await createOrUpdateShopifyCustomer({
+        email: email || undefined,
+        phone: phone || undefined,
+        acceptsMarketing: newsletterAccepted,
+        whatsappMarketing: whatsappAccepted,
+      });
+
+      if (shopifyResult.success) {
+        console.log(`✅ Customer ${shopifyResult.customerId} created/updated in Shopify`);
+      } else {
+        console.error('⚠️ Failed to create/update customer in Shopify:', shopifyResult.error);
+        // Non blocca l'operazione, continua comunque
+      }
+    }
+
     // Prepara la risposta con informazioni sull'integrazione Shopify
     let responseMessage = "Richiesta di contatto inviata con successo!";
     
     if (shopifyResult?.success) {
-      if (shopifyResult.alreadySubscribed?.newsletter && newsletterAccepted && 
-          shopifyResult.alreadySubscribed?.whatsapp && whatsappAccepted) {
-        responseMessage += " (Eri già iscritto a tutti i servizi selezionati)";
-      } else {
-        responseMessage += " Ti abbiamo iscritto automaticamente ai nuovi servizi selezionati.";
-      }
+      responseMessage += " Ti abbiamo anche iscritto automaticamente ai servizi selezionati.";
+    } else if (shopifyResult && !shopifyResult.success) {
+      responseMessage += " (Nota: errore nell'iscrizione automatica ai servizi, ti contatteremo comunque)";
     }
 
     return NextResponse.json({ 
