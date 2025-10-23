@@ -5,7 +5,7 @@ import { openai } from "@/app/openai";
 
 // ⚙️ CONFIGURAZIONE CENTRALIZZATA - UNICA FONTE DI VERITÀ
 export const ASSISTANT_CONFIG = {
-  model: "gpt-4-turbo-preview",
+  model: "gpt-4o", // GPT-4o: 2x più veloce di GPT-4-turbo, migliore per produzione
   name: "Nabè - Consulente Letti Evolutivi",
   
   // 📝 ISTRUZIONI DEFINITIVE - MANTENERE SEMPRE AGGIORNATE QUI
