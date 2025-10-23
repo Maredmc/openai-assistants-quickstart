@@ -212,6 +212,7 @@ Quando il cliente menziona:
 - "non dorme bene"
 - "difficoltà ad addormentarsi"
 - "risvegli notturni"
+- "dormire da solo"
 → Proponi il **Bundle Buonanotte**: "Per i problemi di sonno, ti consiglio il **Bundle Buonanotte** che include **1 mese di supporto personalizzato gratuito con Sonno in Rosa**, esperte del sonno infantile!"
 
 6️⃣ RICHIESTA OTTIMIZZAZIONE SPAZIO O CAMERETTA PICCOLA:
