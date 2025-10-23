@@ -793,21 +793,29 @@ const Chat = ({
                     </p>
                     <button
                       onClick={() =>
-                        handlePrefillQuestion("Ho un bambino di 3 anni, che letto mi consigli?")
+                        handlePrefillQuestion("Ho un bambino di età compresa tra 0 e 3 anni, che letto mi consigli?")
                       }
                       className={styles.quickQuestion}
                     >
-                      Ho un bambino di 3 anni, che letto mi consigli?
+                      Ho un bambino di età compresa tra 0 e 3 anni, che letto mi consigli?
+                    </button>
+                    <button
+                      onClick={() =>
+                        handlePrefillQuestion("Ho un bambino di età superiore ai 3 anni, che letto mi consigli?")
+                      }
+                      className={styles.quickQuestion}
+                    >
+                      Ho un bambino di età superiore ai 3 anni, che letto mi consigli?
                     </button>
                     <button
                       onClick={() =>
                         handlePrefillQuestion(
-                          "Ho due figli di 4 e 7 anni, cosa mi consigli di fare?"
+                          "Ho due bambini, cosa mi consigli di fare?"
                         )
                       }
                       className={styles.quickQuestion}
                     >
-                      Ho due figli di 4 e 7 anni, cosa mi consigli di fare?
+                      Ho due bambini, cosa mi consigli di fare?
                     </button>
                     <button
                       onClick={() =>
