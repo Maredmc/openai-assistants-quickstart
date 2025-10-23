@@ -24,7 +24,7 @@ export function middleware(request: NextRequest) {
     "img-src 'self' data: https: blob:",
     "font-src 'self' data:",
     "connect-src 'self' https://api.openai.com https://*.myshopify.com https://resend.com https://vercel.live https://va.vercel-scripts.com",
-    "frame-ancestors 'none'",
+    "frame-ancestors 'self' https://nabe-furniture.myshopify.com", // Permetti embedding da Shopify
     "base-uri 'self'",
     "form-action 'self'",
   ];
@@ -37,7 +37,9 @@ export function middleware(request: NextRequest) {
   }
 
   // X-Frame-Options: Previeni clickjacking
-  headers.set('X-Frame-Options', 'DENY');
+  // X-Frame-Options: Permetti embedding in iframe (per widget Shopify)
+  // Nota: questo header è deprecato, usa frame-ancestors in CSP
+  headers.set('X-Frame-Options', 'ALLOWALL');
 
   // X-Content-Type-Options: Previeni MIME sniffing
   headers.set('X-Content-Type-Options', 'nosniff');
