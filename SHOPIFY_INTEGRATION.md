@@ -206,64 +206,142 @@ Per compilare automaticamente l'input del chatbot quando l'utente clicca una dom
 ```html
 <script>
   (function () {
-    const IFRAME_SELECTOR = '#nabe-chatbot-iframe'; // aggiorna con il selettore reale dell'iframe
+    const CHATBOT_URL = 'https://openai-assistants-quickstart-one-beta.vercel.app';
+    const OVERLAY_ID = 'nabeChatbotOverlay';
+    const IFRAME_ID = 'nabeChatbotIframe';
+    const LOADING_ID = 'nabeChatbotLoading';
 
-    const getIframe = () => document.querySelector(IFRAME_SELECTOR);
+    let lastScrollTop = 0;
+    let currentQuestion = null;
+    let isChatReady = false;
+
+    const getOverlay = () => document.getElementById(OVERLAY_ID);
+    const getIframe = () => document.getElementById(IFRAME_ID);
+    const getLoading = () => document.getElementById(LOADING_ID);
 
     const getIframeOrigin = (iframe) => {
+      const fallback = new URL(CHATBOT_URL, window.location.href).origin;
+      if (!iframe) return fallback;
+      const src = iframe.getAttribute('src') || CHATBOT_URL;
       try {
-        return new URL(iframe.src, window.location.href).origin;
+        return new URL(src, window.location.href).origin;
       } catch (err) {
         console.warn('[Nabè chatbot] Impossibile calcolare origin iframe:', err);
-        return '*';
+        return fallback;
       }
     };
 
-    const flushPendingQuestion = (iframe) => {
-      const pending = iframe?.dataset.pendingQuestion;
-      if (!pending) return;
-      sendQuestionToIframe(pending);
-      delete iframe.dataset.pendingQuestion;
-    };
-
-    const sendQuestionToIframe = (question) => {
+    const sendPendingQuestion = () => {
+      if (!currentQuestion || !isChatReady) return;
       const iframe = getIframe();
       if (!iframe || !iframe.contentWindow) {
-        console.warn('[Nabè chatbot] Iframe non trovato, ritento al ready event');
+        console.warn('[Nabè chatbot] Iframe non trovato, impossibile inviare la domanda.');
+        return;
+      }
+      const origin = getIframeOrigin(iframe);
+      iframe.contentWindow.postMessage(
+        { type: 'NABE_PREFILL_QUESTION', text: currentQuestion },
+        origin
+      );
+      currentQuestion = null;
+    };
+
+    const openChatbotOverlay = (triggeredByQuickQuestion) => {
+      const overlay = getOverlay();
+      const iframe = getIframe();
+      const loading = getLoading();
+      if (!overlay || !iframe) {
+        console.warn('[Nabè chatbot] Overlay o iframe non trovato.');
         return;
       }
 
-      const origin = getIframeOrigin(iframe);
-      iframe.contentWindow.postMessage(
-        { type: 'NABE_PREFILL_QUESTION', text: question },
-        origin
-      );
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+
+      if (loading) loading.style.display = 'none';
+      iframe.style.display = 'block';
+
+      // Prova ad inviare subito la domanda se il chatbot è già pronto
+      sendPendingQuestion();
+
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'chatbot_open', {
+          event_category: 'engagement',
+          event_label: triggeredByQuickQuestion ? 'quick_question' : 'manual_open'
+        });
+      }
+    };
+
+    window.openNabeChatbot = function openNabeChatbot() {
+      openChatbotOverlay(false);
     };
 
     window.openNabeChatbotWithQuestion = function openNabeChatbotWithQuestion(question) {
-      const iframe = getIframe();
-      if (!iframe) {
-        console.warn('[Nabè chatbot] Iframe non disponibile');
-        return;
-      }
-
-      // Apri il popup se necessario (personalizza in base alla tua UI)
-      document.documentElement.classList.add('nabe-chatbot-open');
-
-      if (iframe.dataset.chatReady === 'true') {
-        sendQuestionToIframe(question);
-      } else {
-        iframe.dataset.pendingQuestion = question;
-      }
+      currentQuestion = question;
+      openChatbotOverlay(true);
     };
+
+    window.closeNabeChatbot = function closeNabeChatbot() {
+      const overlay = getOverlay();
+      if (!overlay) return;
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    };
+
+    const handleWidgetScroll = () => {
+      const widgets = document.querySelectorAll('.nabe-questions-widget');
+      if (window.innerWidth > 768) return;
+
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollDelta = scrollTop - lastScrollTop;
+
+      widgets.forEach((widget) => {
+        if (scrollDelta > 0 && scrollTop > 50) {
+          widget.classList.add('hidden');
+        } else if (scrollDelta < -50) {
+          widget.classList.remove('hidden');
+        }
+      });
+
+      lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+    };
+
+    const throttle = (func, wait) => {
+      let timeout;
+      return function throttled(...args) {
+        if (!timeout) {
+          timeout = setTimeout(() => {
+            func.apply(this, args);
+            timeout = null;
+          }, wait);
+        }
+      };
+    };
+
+    window.addEventListener('scroll', throttle(handleWidgetScroll, 50));
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        window.closeNabeChatbot();
+      }
+    });
+
+    const overlay = getOverlay();
+    if (overlay) {
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+          window.closeNabeChatbot();
+        }
+      });
+    }
 
     window.addEventListener('message', (event) => {
       const iframe = getIframe();
       if (!iframe || event.source !== iframe.contentWindow) return;
       if (!event.data || event.data.type !== 'NABE_CHAT_READY') return;
 
-      iframe.dataset.chatReady = 'true';
-      flushPendingQuestion(iframe);
+      isChatReady = true;
+      sendPendingQuestion();
     });
   })();
 </script>
