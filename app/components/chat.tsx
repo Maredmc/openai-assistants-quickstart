@@ -195,6 +195,7 @@ type ChatProps = {
   initialContext?: {
     product?: string;
     price?: string;
+    question?: string;
     fromShopify?: boolean;
   } | null;
 };
@@ -285,6 +286,45 @@ const Chat = ({
     };
     createThread();
   }, []);
+
+  // 🎯 Gestione domanda iniziale dal widget Shopify
+  useEffect(() => {
+    // 1. Gestisci domanda da URL params (passata tramite initialContext)
+    if (initialContext?.question && threadId && messages.length === 0 && !chatState.inputDisabled) {
+      console.log('📩 Domanda ricevuta da URL:', initialContext.question);
+      // Pre-compila l'input senza inviare automaticamente
+      handlePrefillQuestion(initialContext.question);
+    }
+
+    // 2. Ascolta messaggi postMessage dal widget Shopify
+    const handlePostMessage = (event: MessageEvent) => {
+      // Verifica che il messaggio provenga dal dominio corretto (opzionale ma consigliato)
+      // if (event.origin !== 'https://your-shopify-domain.myshopify.com') return;
+
+      if (event.data.type === 'SET_INITIAL_MESSAGE') {
+        console.log('📩 Domanda ricevuta da postMessage:', event.data.message);
+
+        // Pre-compila l'input con la domanda
+        if (event.data.message) {
+          handlePrefillQuestion(event.data.message);
+
+          // Opzionale: invia automaticamente la domanda
+          // setTimeout(() => {
+          //   if (threadId && !chatState.inputDisabled) {
+          //     setUserInput(event.data.message);
+          //     processUserMessage();
+          //   }
+          // }, 500);
+        }
+      }
+    };
+
+    window.addEventListener('message', handlePostMessage);
+
+    return () => {
+      window.removeEventListener('message', handlePostMessage);
+    };
+  }, [initialContext, threadId, messages.length, chatState.inputDisabled]);
 
   const adjustInputHeight = () => {
     const el = inputRef.current;

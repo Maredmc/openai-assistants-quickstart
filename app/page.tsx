@@ -12,11 +12,13 @@ const BedAdvisorChatbot = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const product = urlParams.get('product');
     const price = urlParams.get('price');
-    
-    if (product || price) {
+    const question = urlParams.get('question');
+
+    if (product || price || question) {
       setInitialContext({
         product,
         price,
+        question,
         fromShopify: true
       });
     }
