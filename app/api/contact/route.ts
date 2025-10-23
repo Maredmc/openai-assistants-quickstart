@@ -203,8 +203,8 @@ export async function POST(request: NextRequest) {
   try {
     await resend.emails.send({
       from: "noreply@nabe.it",
-      to: ["giulio@nabecreation.com"],
-      subject: `🔥 Nuovo contatto dalla chat AI${subjectSuffix}`,
+      to: ["hello@nabecreation.com"],
+      subject: `💸 Nuovo contatto dalla chat AI${subjectSuffix}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
           <h2 style="color: #1f2937; border-bottom: 2px solid #10b981; padding-bottom: 10px;">
