@@ -237,6 +237,78 @@ export const PRODUCT_MAPPING = {
     name: 'Bundle Nanna Plus | 2 step evolutivi',
     description: 'Il bundle Nanna 2 step evolutivi include i piedini e i piedOni, gli elementi essenziali per trasformare il letto Nabè e accompagnare ogni fase della crescita. Da letto a terra a letto rialzato, l\'evoluzione è semplice e sicura.',
     category: 'bundle'
+  },
+
+  // 🛏️ LENZUOLA E COPRIPIUMINI - COLLEZIONE #PianetaTerraChiamaNabè
+  'Set Lenzuola Ama il tuo pianeta': {
+    handle: 'set-lenzuola-ama-il-tuo-pianeta-letto-montessori',
+    name: 'Set Lenzuola Ama il tuo pianeta',
+    description: '"Ama il tuo pianeta" è una delle 3 fantasie realizzate insieme alla illustratrice Simona Baronti, con cui abbiamo creato la collezione di lenzuola e copripiumini per lettini Montessori #PianetaTerraChiamaNabè. Una collezione che rappresenta, attraverso le immagini, tre temi che ci stanno molto a cuore e per cui abbiamo deciso di impegnarci. "Ama il tuo pianeta" è la fantasia che parla di come i piccoli gesti, fatti con amore, facciano la differenza, e di come ognunə di noi possa contribuire a prendersi cura del nostro bellissimo pianeta. Il set lenzuola è composto da: Lenzuolo di sotto verde Primavera con angoli elastici, Lenzuolo di sopra con fantasia Ama il tuo pianeta con risvolto intelligente Smart-flap®, Federa per cuscino con fantasia Ama il tuo pianeta. Tutto il set è realizzato in Italia in 100% cotone percalle di alta qualità, 115 grammi, 200 fili.',
+    category: 'biancheria'
+  },
+  'Set copripiumino Ama il tuo pianeta': {
+    handle: 'set-copripiumino-ama-il-tuo-pianeta',
+    name: 'Set copripiumino Ama il tuo pianeta',
+    description: '"Ama il tuo pianeta" è una delle 3 fantasie realizzate insieme alla illustratrice Simona Baronti, con cui abbiamo creato la collezione di lenzuola e copripiumini per lettini Montessori #PianetaTerraChiamaNabè. "Ama il tuo pianeta" è la fantasia che parla di come i piccoli gesti, fatti con amore, facciano la differenza. Il set copripiumino è composto da: Lenzuolo di sotto verde Primavera con angoli elastici, Copripiumino con fantasia Ama il tuo pianeta, Federa per cuscino con fantasia Ama il tuo pianeta. Tutto il set è realizzato in Italia in 100% cotone percalle di alta qualità, 115 grammi, 200 fili.',
+    category: 'biancheria'
+  },
+  'Set Lenzuola Proteggi la vita': {
+    handle: 'set-lenzuola-proteggi-la-vita',
+    name: 'Set Lenzuola Proteggi la vita',
+    description: '"Proteggi la vita" è una delle 3 fantasie realizzate insieme alla illustratrice Simona Baronti, con cui abbiamo creato la collezione di lenzuola e copripiumini per lettini Montessori #PianetaTerraChiamaNabè. "Proteggi la vita" è la fantasia che rappresenta una serie di animali a rischio di estinzione con lo scopo di passare ai nostri bambini il messaggio che le azioni che compiamo ogni giorno hanno un effetto nel pianeta in cui viviamo, si riflettono sulla vita nel suo insieme. Il set lenzuola è composto da: Lenzuolo di sotto bianco Panna con angoli elastici, Lenzuolo di sopra con fantasia Proteggi la vita con risvolto intelligente Smart-flap®, Federa per cuscino con fantasia Proteggi la vita. Tutto il set è realizzato in Italia in 100% cotone percalle di alta qualità.',
+    category: 'biancheria'
+  },
+  'Set copripiumino Proteggi la vita': {
+    handle: 'set-copripiumino-proteggi-la-vita',
+    name: 'Set copripiumino Proteggi la vita',
+    description: '"Proteggi la vita" è una delle 3 fantasie realizzate insieme alla illustratrice Simona Baronti, con cui abbiamo creato la collezione di lenzuola e copripiumini per lettini Montessori #PianetaTerraChiamaNabè. "Proteggi la vita" rappresenta animali a rischio di estinzione per sensibilizzare i bambini. Il set copripiumino è composto da: Lenzuolo di sotto bianco Panna con angoli elastici, Copripiumino con fantasia Proteggi la vita, Federa per cuscino con fantasia Proteggi la vita. Tutto il set è realizzato in Italia in 100% cotone percalle di alta qualità.',
+    category: 'biancheria'
+  },
+  'Set Lenzuola Rispetta la natura': {
+    handle: 'set-lenzuola-rispetta-la-natura',
+    name: 'Set Lenzuola Rispetta la natura',
+    description: '"Rispetta la natura" è una delle 3 fantasie realizzate insieme alla illustratrice Simona Baronti, con cui abbiamo creato la collezione di lenzuola e copripiumini per lettini Montessori #PianetaTerraChiamaNabè. "Rispetta la natura" vuole portare all\'attenzione dei bambini il delicato equilibrio in cui vivono tutti gli elementi della natura e di quanto tempo sia servito per crearlo. Il set lenzuola è composto da: Lenzuolo di sotto bianco Panna con angoli elastici, Lenzuolo di sopra con fantasia Rispetta la natura con risvolto intelligente Smart-flap®, Federa per cuscino con fantasia Rispetta la natura. Tutto il set è realizzato in Italia in 100% cotone percalle di alta qualità.',
+    category: 'biancheria'
+  },
+  'Set copripiumino Rispetta la natura': {
+    handle: 'set-copripiumino-rispetta-la-natura',
+    name: 'Set copripiumino Rispetta la natura',
+    description: '"Rispetta la natura" è una delle 3 fantasie realizzate insieme alla illustratrice Simona Baronti, con cui abbiamo creato la collezione di lenzuola e copripiumini per lettini Montessori #PianetaTerraChiamaNabè. "Rispetta la natura" vuole portare all\'attenzione dei bambini il delicato equilibrio della natura. Il set copripiumino è composto da: Lenzuolo di sotto bianco Panna con angoli elastici, Copripiumino con fantasia Rispetta la natura, Federa per cuscino con fantasia Rispetta la natura. Tutto il set è realizzato in Italia in 100% cotone percalle di alta qualità.',
+    category: 'biancheria'
+  },
+  'nabag - Set letto con zip integrata': {
+    handle: 'nabag-set-lenzuola-e-copripiumino-tutto-in-uno',
+    name: 'nabag - Set letto con zip integrata',
+    description: 'Completa il tuo letto zero+ con nabag, il set lenzuola e copripiumino tutto in uno, in morbido cotone percalle. Mai più notti scoperte: nabag è il primo set lenzuola che mantiene i bambini coperti durante la notte. Inoltre, grazie ai soffietti laterali, permette loro di muoversi liberamente rimanendo al caldo. Semplice e alla portata di tutti: grazie alle pratiche zip laterali rifare il letto è facile, veloce e alla portata dei bambini. Incoraggia la loro autonomia e il senso di responsabilità. Un unico set, per tutte le necessità: un unico pezzo con lenzuola e copripiumino, per comprare di meno ed avere di più. Il lenzuolo di sotto con angoli elastici è integrato al lenzuolo di sopra e tramite una tasca posteriore, inserire il piumino è semplice e veloce. nabag è realizzato in 100% cotone percalle di alta qualità, 115 grammi, 200 fili.',
+    category: 'biancheria'
+  },
+
+  // 🚪 ARMADI EVOLUTIVI
+  'Armadio evolutivo EverGrow Maxi': {
+    handle: 'armadio-evolutivo-evergrow-maxi',
+    name: 'Armadio evolutivo EverGrow Maxi',
+    description: 'L\'armadio evolutivo EverGrow Maxi è la soluzione ideale per una cameretta montessori completa. Unisce estetica e funzionalità. Realizzato in legno massello, questo armadio a 2 ante si ispira alla filosofia Montessori ed è il complemento ideale del letto montessoriano evolutivo zero+ per offrire un ambiente di crescita stimolante e indipendente. Più di un guardaroba Montessori: un compagno di crescita! Progettato come armadio evolutivo grazie alla sua struttura modulare, il guardaroba evolutivo EverGrow Maxi consente di personalizzare completamente lo spazio interno adattandosi alle esigenze in cambiamento del tuo bambino. Intuitivo e accessibile: l\'appendiabiti si può posizionare in basso per permettere ai più piccoli di raggiungere facilmente i loro vestiti, promuovendo l\'autonomia fin dai primi passi. Via via che diventano grandi, l\'armadio cresce con loro, permettendoti di aggiungere cassetti, ulteriori ripiani e ante, per un\'organizzazione dello spazio su misura.',
+    category: 'armadio'
+  },
+
+  // 🪜 TORRE MONTESSORIANA
+  'Torre montessoriana Mia': {
+    handle: 'torre-montessoriana-mia',
+    name: 'Torre montessoriana Mia',
+    description: 'La torre montessoriana evolutiva che cresce con i bambini: da learning tower con ripiano regolabile, si trasforma in scaletta salvaspazio o comoda sediolina, accompagnando ogni fase della loro autonomia. La torre montessoriana Mia è realizzata in 100% legno massello naturale di faggio, non trattato, del tutto privo di sostanze potenzialmente nocive. Il legno naturale non trattato, con le sue venature e nodi unici in ogni pezzo, conferisce carattere e autenticità. Questa variabilità intrinseca non solo esalta l\'estetica, ma rende ogni arredo unico e irripetibile.',
+    category: 'torre montessoriana'
+  },
+  'Torre montessoriana Mia bio paint': {
+    handle: 'torre-montessoriana-mia-bio-paint',
+    name: 'Torre montessoriana Mia bio paint',
+    description: 'La torre montessoriana evolutiva laccata bianca, con vernice all\'acqua bio-paint, per una protezione ecologica, atossica e sicura per i più piccoli. Da learning tower con ripiano regolabile, si trasforma in scaletta salvaspazio o comoda sediolina, accompagnando ogni fase della loro autonomia. La torre montessoriana Mia bio paint è realizzata in 100% legno massello naturale di faggio, del tutto privo di sostanze potenzialmente nocive. Laccata bianca, con vernice all\'acqua bio-paint, per una protezione ecologica, atossica e sicura per i più piccoli. Il legno naturale, con le sue venature e nodi unici in ogni pezzo, conferisce carattere e autenticità.',
+    category: 'torre montessoriana'
+  },
+  'Torre montessoriana Mia bicolor': {
+    handle: 'torre-montessoriana-mia-bicolor',
+    name: 'Torre montessoriana Mia bicolor',
+    description: 'La torre montessoriana evolutiva in versione bicolor per chi le vorrebbe entrambe! Legno naturale e laccata bianca, con vernice all\'acqua bio-paint. Da learning tower con ripiano regolabile, si trasforma in scaletta salvaspazio o comoda sediolina, accompagnando ogni fase della loro autonomia. La torre montessoriana Mia in versione bicolor è realizzata in 100% legno massello naturale di faggio, del tutto privo di sostanze potenzialmente nocive. In legno naturale e laccata bianca con vernice all\'acqua bio-paint.',
+    category: 'torre montessoriana'
   }
 };
 
@@ -263,6 +335,26 @@ export function generateAssistantProductInstructions(): string {
     .map(([key, product]) => `- ${key}: [PRODOTTO: ${product.handle}]`)
     .join('\n');
 
+  const kitConversione = Object.entries(PRODUCT_MAPPING)
+    .filter(([_, product]) => product.category === 'kit di conversione')
+    .map(([key, product]) => `- ${key}: [PRODOTTO: ${product.handle}]`)
+    .join('\n');
+
+  const biancheria = Object.entries(PRODUCT_MAPPING)
+    .filter(([_, product]) => product.category === 'biancheria')
+    .map(([key, product]) => `- ${key}: [PRODOTTO: ${product.handle}]`)
+    .join('\n');
+
+  const armadio = Object.entries(PRODUCT_MAPPING)
+    .filter(([_, product]) => product.category === 'armadio')
+    .map(([key, product]) => `- ${key}: [PRODOTTO: ${product.handle}]`)
+    .join('\n');
+
+  const torre = Object.entries(PRODUCT_MAPPING)
+    .filter(([_, product]) => product.category === 'torre')
+    .map(([key, product]) => `- ${key}: [PRODOTTO: ${product.handle}]`)
+    .join('\n');
+
   return `
 🛍️ PRODOTTI AUTOMATICI (OBBLIGATORIO):
 Quando consigli qualsiasi prodotto Nabè, inserisci SEMPRE la riga:
@@ -279,8 +371,20 @@ ${accessori}
 💤 COMFORT E RIPOSO:
 ${comfort}
 
+🔄 KIT DI CONVERSIONE:
+${kitConversione}
+
 📦 BUNDLE 190x80:
 ${bundles}
+
+🛏️ LENZUOLA E COPRIPIUMINI:
+${biancheria}
+
+🚪 ARMADI EVOLUTIVI:
+${armadio}
+
+🪜 TORRE MONTESSORIANA:
+${torre}
   `.trim();
 }
 

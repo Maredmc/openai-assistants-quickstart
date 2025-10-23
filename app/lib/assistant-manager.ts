@@ -108,6 +108,210 @@ Un letto evolutivo e un percorso esclusivo in omaggio. Con il Bundle Buonanotte 
 Include i **piedini** e i **piedOni**, gli elementi essenziali per trasformare il letto Nabè e accompagnare ogni fase della crescita. **Da letto a terra a letto rialzato**, l'evoluzione è semplice e sicura.
 [PRODOTTO: bundle-nanna-plus-19080]
 
+🛏️ SET LENZUOLA E COPRIPIUMINI - Collezione #PianetaTerraChiamaNabè
+
+La collezione #PianetaTerraChiamaNabè è nata dalla collaborazione con l'illustratrice Simona Baronti e rappresenta tre temi importanti per Nabè attraverso tre fantasie uniche:
+
+1. **"Ama il tuo pianeta"** - La fantasia che parla di come i piccoli gesti, fatti con amore, facciano la differenza, e di come ognunə di noi possa contribuire a prendersi cura del nostro pianeta.
+   - Set Lenzuola: [PRODOTTO: set-lenzuola-ama-il-tuo-pianeta-letto-montessori]
+   - Set Copripiumino: [PRODOTTO: set-copripiumino-ama-il-tuo-pianeta]
+
+2. **"Proteggi la vita"** - La fantasia che rappresenta animali a rischio di estinzione per sensibilizzare i bambini sul fatto che le nostre azioni quotidiane hanno un effetto sul pianeta e sulla vita nel suo insieme.
+   - Set Lenzuola: [PRODOTTO: set-lenzuola-proteggi-la-vita]
+   - Set Copripiumino: [PRODOTTO: set-copripiumino-proteggi-la-vita]
+
+3. **"Rispetta la natura"** - La fantasia che vuole portare all'attenzione dei bambini il delicato equilibrio in cui vivono tutti gli elementi della natura e quanto tempo sia servito per crearlo.
+   - Set Lenzuola: [PRODOTTO: set-lenzuola-rispetta-la-natura]
+   - Set Copripiumino: [PRODOTTO: set-copripiumino-rispetta-la-natura]
+
+**Composizione Set Lenzuola:**
+- Lenzuolo di sotto con angoli elastici (colore in base alla fantasia)
+- Lenzuolo di sopra con fantasia stampata e risvolto intelligente Smart-flap®
+- Federa per cuscino con fantasia stampata
+
+**Composizione Set Copripiumino:**
+- Lenzuolo di sotto con angoli elastici (colore in base alla fantasia)
+- Copripiumino con fantasia stampata
+- Federa per cuscino con fantasia stampata
+
+**Dimensioni disponibili per lenzuola e copripiumini:**
+- Letto singolo 190x80 (dimensione standard)
+- Letto singolo ridotto 160x80
+- Piazza e mezzo 190x120
+- Letto a due piazze 190x160
+
+**Opzioni per i copripiumini:**
+- **Senza piumino**: include solo il set (lenzuolo sotto, copripiumino, federa)
+- **Con piumino**: include il set completo + piumino removibile
+
+**Materiali e qualità:**
+- 100% cotone percalle di alta qualità
+- 115 grammi, 200 fili
+- Realizzato in Italia
+- Morbido al tatto, resistente e durevole nel tempo
+- Certificato OEKO-TEX Standard® 100
+
+**Come consigliare i set lenzuola e copripiumini:**
+- I **set lenzuola** sono ideali per chi preferisce usare una coperta tradizionale o per le stagioni più calde
+- I **set copripiumini** sono perfetti per chi vuole la praticità di cambiare facilmente l'imbottitura secondo la stagione
+- Suggerisci la fantasia in base ai valori che i genitori vogliono trasmettere ai bambini
+- Ricorda sempre che sono prodotti della collezione #PianetaTerraChiamaNabè, creata con l'illustratrice Simona Baronti
+
+🛏️ nabag - Set letto con zip integrata
+
+nabag è il set lenzuola e copripiumino rivoluzionario tutto in uno che risolve il problema delle notti scoperte.
+[PRODOTTO: nabag-set-lenzuola-e-copripiumino-tutto-in-uno]
+
+**Caratteristiche principali:**
+- **Mai più notti scoperte**: grazie ai soffietti laterali e alle zip integrate, i bambini rimangono coperti tutta la notte anche se si muovono
+- **Facilita l'autonomia**: le zip laterali rendono facile rifare il letto, anche per i bambini stessi
+- **Tutto in uno**: lenzuolo di sotto integrato al lenzuolo di sopra, con tasca posteriore per inserire il piumino
+- **Un unico prodotto**: per comprare di meno ed avere di più
+
+**Dimensioni disponibili:**
+- Letto singolo 190x80 (standard)
+- Letto singolo ridotto 160x80
+- Una piazza e mezzo 190x120
+
+**Opzioni:**
+- **Senza piumino**: solo il set nabag (lenzuole integrate)
+- **Con piumino**: set nabag + piumino removibile incluso
+
+**Materiali:**
+- 100% cotone percalle di alta qualità
+- 115 grammi, 200 fili
+- Realizzato in Italia
+- Leggero come una nuvola, traspirante
+- Certificato OEKO-TEX Standard® 100
+
+**Quando consigliare nabag:**
+- Per genitori che cercano una soluzione pratica e innovativa
+- Per bambini che si scoprono spesso durante la notte
+- Per chi vuole insegnare l'autonomia nel rifare il letto
+- Da abbinare ai letti evolutivi zero+ per una cameretta Montessori completa
+
+🗄️ ARMADI EVOLUTIVI EVERGROW
+
+L'armadio evolutivo EverGrow Maxi è la soluzione ideale per completare una cameretta Montessori, progettato per crescere con i bambini grazie alla sua struttura modulare completamente personalizzabile.
+[PRODOTTO: armadio-evolutivo-evergrow-maxi]
+
+**Filosofia del prodotto:**
+- Realizzato in 100% legno massello naturale
+- Si ispira alla filosofia Montessori
+- Complemento ideale del letto evolutivo zero+
+- Promuove l'autonomia fin dai primi passi
+- L'appendiabiti può essere posizionato in basso per permettere ai più piccoli di raggiungere i loro vestiti
+
+**Sistema evolutivo e modulare:**
+L'armadio EverGrow Maxi può essere personalizzato completamente grazie alle diverse configurazioni disponibili:
+
+**Opzione 1 - Ante:**
+- **Senza ante**: configurazione aperta, perfetta per i più piccoli che possono vedere e raggiungere facilmente i loro vestiti
+- **Con ante**: configurazione con 2 ante in legno massello per un look più ordinato e tradizionale
+
+**Opzione 2 - Cassetti:**
+- **Senza cassetti**: massima versatilità con ripiani regolabili
+- **1 cassetto**: aggiunge spazio organizzato per biancheria e accessori
+- **2 cassetti**: doppio spazio contenitore per massima organizzazione
+
+**Opzione 3 - Modulo Top:**
+- **Senza modulo Top**: configurazione base, altezza standard
+- **Modulo Top senza ante**: estende l'altezza dell'armadio con spazio aperto aggiuntivo
+- **Modulo Top con ante**: estende l'altezza con ante per massimizzare lo spazio chiuso
+
+**Accessori aggiuntivi disponibili:**
+- Cassetti EverGrow (acquistabili separatamente)
+- Ripiani EverGrow (acquistabili separatamente)
+- Ante EverGrow coppia (acquistabili separatamente)
+- Piedini EverGrow (per rialzare l'armadio e facilitare le pulizie)
+
+**Sistema completo cameretta:**
+L'armadio EverGrow Maxi può essere abbinato a:
+- **Armadio evolutivo EverGrow Junior**: versione più compatta per spazi ridotti o come complemento
+- **Modulo Top Junior**: per estendere anche EverGrow Junior
+
+**Materiali e qualità:**
+- 100% legno massello naturale
+- Design versatile e robusto
+- Costruito per durare nel tempo
+- Made in Italy con controllo qualità artigianale
+
+**Come consigliare l'armadio EverGrow Maxi:**
+- Per camerette Montessori complete insieme al letto zero+
+- Per genitori che cercano mobili evolutivi che crescono con i bambini
+- Spiega che l'appendiabiti può essere posizionato in basso inizialmente e poi alzato man mano che il bambino cresce
+- Consiglia la configurazione base (senza ante, senza cassetti, senza modulo top) per iniziare e poi aggiungere elementi nel tempo
+- Per chi ha più spazio o più bambini, suggerisci di abbinare EverGrow Maxi con EverGrow Junior
+
+**Configurazione consigliata per età:**
+- **0-3 anni**: Senza ante, senza cassetti, appendiabiti in basso
+- **3-6 anni**: Possibilità di aggiungere 1-2 cassetti, alzare l'appendiabiti
+- **6+ anni**: Configurazione completa con ante, cassetti e modulo top se necessario
+
+🪜 TORRE MONTESSORIANA MIA
+
+La torre montessoriana Mia è uno strumento evolutivo che accompagna i bambini nella conquista della propria autonomia, trasformandosi da learning tower a scaletta o sediolina.
+
+**Tre versioni disponibili:**
+
+1. **Torre montessoriana Mia** (legno naturale)
+   [PRODOTTO: torre-montessoriana-mia]
+   - 100% legno massello naturale di faggio, non trattato
+   - Nessuna sostanza nociva
+   - Venature e nodi unici in ogni pezzo
+   - Ogni torre è unica e irripetibile
+
+2. **Torre montessoriana Mia bio paint** (laccata bianca)
+   [PRODOTTO: torre-montessoriana-mia-bio-paint]
+   - 100% legno massello naturale di faggio
+   - Laccata bianca con vernice all'acqua bio-paint
+   - Protezione ecologica, atossica e sicura per i più piccoli
+   - Certificata EN71-3
+
+3. **Torre montessoriana Mia bicolor** (legno naturale + bianco)
+   [PRODOTTO: torre-montessoriana-mia-bicolor]
+   - 100% legno massello naturale di faggio
+   - Versione bicolor: parte in legno naturale, parte laccata bianca
+   - Per chi vuole il meglio di entrambe le finiture
+   - Con vernice all'acqua bio-paint per la parte bianca
+
+**Funzioni evolutive:**
+- **Learning tower**: con ripiano regolabile in altezza per permettere ai bambini di raggiungere il piano di lavoro in cucina o il lavandino
+- **Scaletta salvaspazio**: può essere utilizzata come scaletta per raggiungere mensole o armadi
+- **Sediolina comoda**: si trasforma in una comoda sediolina per leggere, disegnare o giocare
+
+**Caratteristiche tecniche:**
+- Ripiano regolabile su più altezze
+- Struttura stabile e sicura
+- Facile da trasformare tra le diverse configurazioni
+- Realizzata in Italia
+
+**Materiali e vernici bio-paint (per versioni bianca e bicolor):**
+- Vernice biologica all'acqua composta al 75% da materiali vegetali rinnovabili
+- Riduce le emissioni di CO2
+- Meno composti organici volatili (VOC)
+- Certificata EN71-3
+- Superficie matte, setosa al tatto
+- Mantiene visibili le venature naturali del legno
+- Atossica ed ecologica
+- Garantisce aria pulita e ambienti sicuri
+
+**Come consigliare la torre montessoriana Mia:**
+- Consigliata per bambini da circa 18 mesi in su
+- Perfetta per promuovere l'autonomia in cucina e bagno
+- Spiega le tre funzioni evolutive (learning tower, scaletta, sediolina)
+- Per la scelta della finitura:
+  - **Legno naturale**: per chi ama il calore e l'autenticità del legno non trattato
+  - **Bio paint (bianca)**: per chi cerca una finitura moderna, pulita e facilmente abbinabile, con garanzia di sicurezza
+  - **Bicolor**: per chi non riesce a scegliere e vuole entrambe le finiture
+- Complemento ideale per una cameretta Montessori con letto zero+ e armadio EverGrow
+
+**Quando proporre la torre:**
+- Per genitori che seguono la filosofia Montessori
+- Per chi vuole coinvolgere i bambini nelle attività quotidiane (cucina, bagno)
+- Per promuovere l'autonomia e l'indipendenza
+- Da abbinare ai letti zero+ e agli armadi EverGrow per una cameretta completa
+
 I letti per bambini zero+ sono realizzati in Italia con pregiato legno di abete Scandinavo, privo di formaldeide, solventi e di ogni sostanza additiva. 100% legno massello naturale selezionato, certificato PEFC per garantire all'origine un corretto ripristino della foresta.
 
 Il legno massello naturale non è sottoposto a trattamenti e senza colle, non produce esalazioni ed è quindi un prodotto autentico e sicuro per i bambini.
