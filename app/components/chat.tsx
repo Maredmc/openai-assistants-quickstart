@@ -370,8 +370,34 @@ const Chat = ({
         }
       );
 
-      if (!response.ok || !response.body) {
-        throw new Error(`Richiesta fallita con status ${response.status}`);
+      // 🚨 Gestione errori specifici (sovraccarico, timeout)
+      if (!response.ok) {
+        let errorMessage = "Mi dispiace, ho avuto un problema tecnico. Prova di nuovo tra qualche istante.";
+        let retryAfter = 5;
+
+        try {
+          const errorData = await response.json();
+
+          if (response.status === 503 || errorData.code === 'QUEUE_FULL' || errorData.code === 'SYSTEM_OVERLOADED') {
+            // Sistema sovraccarico
+            errorMessage = `⚠️ Il sistema è momentaneamente sovraccarico. Ti preghiamo di riprovare tra ${errorData.retryAfter || 10} secondi.`;
+            retryAfter = errorData.retryAfter || 10;
+          } else if (response.status === 408 || errorData.code === 'TIMEOUT') {
+            // Timeout
+            errorMessage = "⏱️ La richiesta ha impiegato troppo tempo. Il sistema è sotto carico, riprova tra qualche secondo.";
+            retryAfter = errorData.retryAfter || 5;
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch {
+          // Se non riusciamo a parsare l'errore, usa messaggio generico
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      if (!response.body) {
+        throw new Error("Risposta vuota dal server");
       }
 
       const stream = AssistantStream.fromReadableStream(response.body);
@@ -380,11 +406,16 @@ const Chat = ({
       console.error("Errore durante l'invio del messaggio:", error);
       performanceMonitor.endChatResponse(startTime);
       setResponseStartTime(null);
+
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Mi dispiace, ho avuto un problema tecnico. Prova di nuovo tra qualche istante o contattaci su hello@nabecreation.com.";
+
       setMessages((prevMessages) => [
         ...prevMessages,
         {
           role: "assistant",
-          text: "Mi dispiace, ho avuto un problema tecnico. Prova di nuovo tra qualche istante o contattaci su hello@nabecreation.com.",
+          text: errorMessage,
         },
       ]);
       setChatState((prev) => ({
@@ -392,7 +423,7 @@ const Chat = ({
         inputDisabled: false,
         isLoading: false,
       }));
-      performanceMonitor.recordApiError("assistant-run", error.message);
+      performanceMonitor.recordApiError("assistant-run", error instanceof Error ? error.message : "Unknown error");
       return;
     }
 

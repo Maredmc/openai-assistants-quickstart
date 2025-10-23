@@ -1,16 +1,41 @@
 /**
- * 🔒 Next.js Middleware - Security Headers & Protection
+ * 🔒 Next.js Middleware - Security Headers & Overload Protection
  *
  * Questo middleware viene eseguito su TUTTE le richieste
- * e aggiunge header di sicurezza critici.
+ * e aggiunge header di sicurezza critici + protezione sovraccarico.
  */
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { openaiQueue } from '@/app/lib/openai-queue';
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 export function middleware(request: NextRequest) {
+  // 🚨 Protezione sovraccarico per API chat
+  // Se la coda è piena, rifiuta la richiesta PRIMA di entrare nel route handler
+  if (request.nextUrl.pathname.includes('/api/assistants/threads/') &&
+      request.nextUrl.pathname.includes('/messages') &&
+      request.method === 'POST') {
+
+    if (openaiQueue.isOverloaded()) {
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Sistema sovraccarico. Riprova tra 10 secondi.',
+          code: 'SYSTEM_OVERLOADED',
+          retryAfter: 10,
+        }),
+        {
+          status: 503,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': '10',
+          },
+        }
+      );
+    }
+  }
+
   const response = NextResponse.next();
 
   // 🛡️ Security Headers

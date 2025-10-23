@@ -13,6 +13,8 @@ import {
 } from "@/app/lib/security";
 import { secureLog } from "@/app/lib/secure-logger";
 
+export const maxDuration = 15; // 15 secondi max per invio email + Shopify
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const CONTACT_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
