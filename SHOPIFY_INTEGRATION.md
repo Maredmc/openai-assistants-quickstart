@@ -198,6 +198,86 @@ await createOrUpdateShopifyCustomer({
 L'integrazione è **100% completa** e segue esattamente la logica richiesta:
 - ✅ Solo Newsletter → iscritto al marketing email
 - ✅ Solo WhatsApp → unsubscribed dal marketing email  
+
+## 💬 Prefill domande nel chatbot da Shopify
+
+Per compilare automaticamente l'input del chatbot quando l'utente clicca una domanda nel widget Shopify, aggiungi questo script al tema (ad esempio in `theme.liquid` o nello snippet che gestisce il popup):
+
+```html
+<script>
+  (function () {
+    const IFRAME_SELECTOR = '#nabe-chatbot-iframe'; // aggiorna con il selettore reale dell'iframe
+
+    const getIframe = () => document.querySelector(IFRAME_SELECTOR);
+
+    const getIframeOrigin = (iframe) => {
+      try {
+        return new URL(iframe.src, window.location.href).origin;
+      } catch (err) {
+        console.warn('[Nabè chatbot] Impossibile calcolare origin iframe:', err);
+        return '*';
+      }
+    };
+
+    const flushPendingQuestion = (iframe) => {
+      const pending = iframe?.dataset.pendingQuestion;
+      if (!pending) return;
+      sendQuestionToIframe(pending);
+      delete iframe.dataset.pendingQuestion;
+    };
+
+    const sendQuestionToIframe = (question) => {
+      const iframe = getIframe();
+      if (!iframe || !iframe.contentWindow) {
+        console.warn('[Nabè chatbot] Iframe non trovato, ritento al ready event');
+        return;
+      }
+
+      const origin = getIframeOrigin(iframe);
+      iframe.contentWindow.postMessage(
+        { type: 'NABE_PREFILL_QUESTION', text: question },
+        origin
+      );
+    };
+
+    window.openNabeChatbotWithQuestion = function openNabeChatbotWithQuestion(question) {
+      const iframe = getIframe();
+      if (!iframe) {
+        console.warn('[Nabè chatbot] Iframe non disponibile');
+        return;
+      }
+
+      // Apri il popup se necessario (personalizza in base alla tua UI)
+      document.documentElement.classList.add('nabe-chatbot-open');
+
+      if (iframe.dataset.chatReady === 'true') {
+        sendQuestionToIframe(question);
+      } else {
+        iframe.dataset.pendingQuestion = question;
+      }
+    };
+
+    window.addEventListener('message', (event) => {
+      const iframe = getIframe();
+      if (!iframe || event.source !== iframe.contentWindow) return;
+      if (!event.data || event.data.type !== 'NABE_CHAT_READY') return;
+
+      iframe.dataset.chatReady = 'true';
+      flushPendingQuestion(iframe);
+    });
+  })();
+</script>
+```
+
+Ora puoi riutilizzare le pillole esistenti:
+
+```html
+<div class="nabe-question-pill" onclick="openNabeChatbotWithQuestion('Quali sono i tempi di consegna?')">
+  Tempi di consegna?
+</div>
+```
+
+Il componente React del chatbot invia l'evento `NABE_CHAT_READY` quando è pronto a ricevere messaggi e accetta le domande attraverso `postMessage`.
 - ✅ Entrambi → iscritto a entrambi i servizi
 - ✅ Controllo duplicati completo
 - ✅ Merge intelligente dei tag

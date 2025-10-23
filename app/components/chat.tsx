@@ -196,6 +196,7 @@ type ChatProps = {
     product?: string;
     price?: string;
     fromShopify?: boolean;
+    prefillQuestion?: string;
   } | null;
 };
 
@@ -228,6 +229,7 @@ const Chat = ({
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const initialPrefillAppliedRef = useRef(false);
   
   // 🎯 Controlla se l'utente è vicino al fondo
   const isUserNearBottom = useCallback(() => {
@@ -286,7 +288,7 @@ const Chat = ({
     createThread();
   }, []);
 
-  const adjustInputHeight = () => {
+  const adjustInputHeight = useCallback(() => {
     const el = inputRef.current;
     if (!el) return;
     el.style.height = "auto";
@@ -294,11 +296,53 @@ const Chat = ({
     const minHeight = 44;
     const next = Math.min(Math.max(el.scrollHeight, minHeight), maxHeight);
     el.style.height = `${next}px`;
-  };
+  }, []);
+
+  const handlePrefillQuestion = useCallback((text: string) => {
+    setUserInput(text);
+    requestAnimationFrame(() => {
+      adjustInputHeight();
+      inputRef.current?.focus();
+    });
+  }, [adjustInputHeight]);
 
   useEffect(() => {
     adjustInputHeight();
-  }, [userInput]);
+  }, [userInput, adjustInputHeight]);
+
+  useEffect(() => {
+    const applyInitialPrefill = initialContext?.prefillQuestion?.trim();
+    if (!applyInitialPrefill || initialPrefillAppliedRef.current) {
+      return;
+    }
+    handlePrefillQuestion(applyInitialPrefill);
+    initialPrefillAppliedRef.current = true;
+  }, [initialContext, handlePrefillQuestion]);
+
+  useEffect(() => {
+    const handleIncomingPrefill = (event: MessageEvent) => {
+      const payload = event.data;
+      if (
+        !payload ||
+        typeof payload !== "object" ||
+        payload.type !== "NABE_PREFILL_QUESTION" ||
+        typeof payload.text !== "string"
+      ) {
+        return;
+      }
+      handlePrefillQuestion(payload.text);
+    };
+
+    window.addEventListener("message", handleIncomingPrefill);
+    return () => window.removeEventListener("message", handleIncomingPrefill);
+  }, [handlePrefillQuestion]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "NABE_CHAT_READY" }, "*");
+    }
+  }, []);
 
   const sendMessage = async (text: string) => {
     if (!threadId) {
@@ -395,14 +439,6 @@ const Chat = ({
     );
     const stream = AssistantStream.fromReadableStream(response.body);
     handleReadableStream(stream);
-  };
-
-  const handlePrefillQuestion = (text: string) => {
-    setUserInput(text);
-    requestAnimationFrame(() => {
-      adjustInputHeight();
-      inputRef.current?.focus();
-    });
   };
 
   const processUserMessage = () => {
