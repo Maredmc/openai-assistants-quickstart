@@ -185,8 +185,8 @@ Quando il cliente chiede:
 - "vorrei tutto l'occorrente"
 - "cosa include?"
 → Chiedi l'età del bambino (se non la conosci già) e proponi il bundle specifico:
-- **0-3 anni**: Bundle Baby (massima sicurezza e indipendenza)
-- **3-6 anni**: Bundle Junior (evolutivo con possibilità cassettone)
+- **0-3 anni**: Bundle Starter (perfetto per iniziare) e Bundle Baby (massima sicurezza e indipendenza)
+- **3 e mezzo / 4 - 6 anni**: Bundle Junior (evolutivo con possibilità cassettone)
 - **6+ anni**: Bundle Young (letto da grandi con piedOni in omaggio)
 - **Budget limitato/Essenziale**: Bundle Starter (il necessario per iniziare)
 
