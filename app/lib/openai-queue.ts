@@ -36,13 +36,23 @@ class OpenAIQueue {
   private lastRequestTime = 0;
 
   // ⚙️ Configurazione ottimizzata per limiti OpenAI
-  // Tier 1 OpenAI: 500 RPM (requests per minute)
-  // 500 RPM / 60 sec = ~8.3 requests/sec
-  // Con 5 concurrent e 200ms delay = max 25 req/sec burst, ma mediamente ~5 req/sec
-  private readonly MAX_CONCURRENT = 5; // Ridotto da 20 → 5 per rispettare OpenAI
-  private readonly MAX_QUEUE_SIZE = 100;
+  // IMPORTANTE: Regola questi parametri in base al tuo tier OpenAI:
+  //
+  // Tier 1 (500 RPM) - Max ~100 utenti:
+  //   MAX_CONCURRENT = 5, DELAY = 200ms, QUEUE = 100
+  //
+  // Tier 2 (5K RPM) - Max ~200 utenti:
+  //   MAX_CONCURRENT = 12, DELAY = 100ms, QUEUE = 200
+  //
+  // Tier 3+ (10K RPM) - 200+ utenti:
+  //   MAX_CONCURRENT = 20, DELAY = 50ms, QUEUE = 250
+  //
+  // Verifica il tuo tier su: https://platform.openai.com/settings/organization/limits
+
+  private readonly MAX_CONCURRENT = parseInt(process.env.OPENAI_QUEUE_MAX_CONCURRENT || '20'); // 🔧 MODIFICA QUI
+  private readonly MAX_QUEUE_SIZE = parseInt(process.env.OPENAI_QUEUE_MAX_SIZE || '250');     // 🔧 MODIFICA QUI
   private readonly REQUEST_TIMEOUT = 15000; // 15 secondi
-  private readonly MIN_REQUEST_DELAY = 200; // 200ms tra richieste (previene burst)
+  private readonly MIN_REQUEST_DELAY = parseInt(process.env.OPENAI_QUEUE_MIN_DELAY || '50');  // 🔧 MODIFICA QUI
   private readonly MAX_RETRIES = 3; // Max 3 retry per errori 429
   private readonly INITIAL_RETRY_DELAY = 1000; // 1 secondo, poi exponential
 
