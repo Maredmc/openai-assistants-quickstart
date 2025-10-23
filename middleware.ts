@@ -24,7 +24,7 @@ export function middleware(request: NextRequest) {
     "img-src 'self' data: https: blob:",
     "font-src 'self' data:",
     "connect-src 'self' https://api.openai.com https://*.myshopify.com https://resend.com https://vercel.live https://va.vercel-scripts.com",
-    "frame-ancestors 'self' https://nabe-furniture.myshopify.com", // Permetti embedding da Shopify
+    "frame-ancestors 'self' https://*.myshopify.com https://*", // Permetti embedding da Shopify e altri domini
     "base-uri 'self'",
     "form-action 'self'",
   ];
