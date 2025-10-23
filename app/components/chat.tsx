@@ -370,7 +370,7 @@ const Chat = ({
         }
       );
 
-      // 🚨 Gestione errori specifici (sovraccarico, timeout)
+      // 🚨 Gestione errori specifici (sovraccarico, timeout, rate limit)
       if (!response.ok) {
         let errorMessage = "Mi dispiace, ho avuto un problema tecnico. Prova di nuovo tra qualche istante.";
         let retryAfter = 5;
@@ -382,6 +382,10 @@ const Chat = ({
             // Sistema sovraccarico
             errorMessage = `⚠️ Il sistema è momentaneamente sovraccarico. Ti preghiamo di riprovare tra ${errorData.retryAfter || 10} secondi.`;
             retryAfter = errorData.retryAfter || 10;
+          } else if (response.status === 429 || errorData.code === 'RATE_LIMIT') {
+            // Rate limit OpenAI raggiunto
+            errorMessage = `🔄 Stiamo ricevendo molte richieste. Riprova tra ${errorData.retryAfter || 30} secondi.`;
+            retryAfter = errorData.retryAfter || 30;
           } else if (response.status === 408 || errorData.code === 'TIMEOUT') {
             // Timeout
             errorMessage = "⏱️ La richiesta ha impiegato troppo tempo. Il sistema è sotto carico, riprova tra qualche secondo.";

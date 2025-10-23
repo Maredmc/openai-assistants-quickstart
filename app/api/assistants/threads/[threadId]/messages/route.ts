@@ -53,18 +53,39 @@ export async function POST(request, { params: { threadId } }) {
         threadId: threadId.substring(0, 10) + '...'
       });
 
-      // Errore sovraccarico o timeout
+      // Mappa errori a status code e retry time appropriati
+      let statusCode: number;
+      let retryAfter: number;
+
+      switch (error.code) {
+        case 'QUEUE_FULL':
+          statusCode = 503;
+          retryAfter = 10;
+          break;
+        case 'RATE_LIMIT':
+          statusCode = 429;
+          retryAfter = 30; // 30 secondi per rate limit OpenAI
+          break;
+        case 'TIMEOUT':
+          statusCode = 408;
+          retryAfter = 5;
+          break;
+        default:
+          statusCode = 500;
+          retryAfter = 5;
+      }
+
       return new Response(
         JSON.stringify({
           error: error.message,
           code: error.code,
-          retryAfter: error.code === 'QUEUE_FULL' ? 10 : 5, // Suggerisci quando riprovare (secondi)
+          retryAfter,
         }),
         {
-          status: error.code === 'QUEUE_FULL' ? 503 : 408,
+          status: statusCode,
           headers: {
             "Content-Type": "application/json",
-            "Retry-After": error.code === 'QUEUE_FULL' ? "10" : "5"
+            "Retry-After": String(retryAfter)
           }
         }
       );
