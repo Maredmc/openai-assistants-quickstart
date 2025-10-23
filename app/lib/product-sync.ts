@@ -290,6 +290,94 @@ export const PRODUCT_MAPPING = {
     description: 'L\'armadio evolutivo EverGrow Maxi è la soluzione ideale per una cameretta montessori completa. Unisce estetica e funzionalità. Realizzato in legno massello, questo armadio a 2 ante si ispira alla filosofia Montessori ed è il complemento ideale del letto montessoriano evolutivo zero+ per offrire un ambiente di crescita stimolante e indipendente. Più di un guardaroba Montessori: un compagno di crescita! Progettato come armadio evolutivo grazie alla sua struttura modulare, il guardaroba evolutivo EverGrow Maxi consente di personalizzare completamente lo spazio interno adattandosi alle esigenze in cambiamento del tuo bambino. Intuitivo e accessibile: l\'appendiabiti si può posizionare in basso per permettere ai più piccoli di raggiungere facilmente i loro vestiti, promuovendo l\'autonomia fin dai primi passi. Via via che diventano grandi, l\'armadio cresce con loro, permettendoti di aggiungere cassetti, ulteriori ripiani e ante, per un\'organizzazione dello spazio su misura.',
     category: 'armadio'
   },
+  'Armadio evolutivo EverGrow Junior': {
+    handle: 'armadio-evolutivo-evergrow-junior',
+    name: 'Armadio evolutivo EverGrow Junior',
+    description: 'L\'armadio evolutivo EverGrow Junior è pensato per chi ha a disposizione spazi ridotti e non può fare a meno di estetica e funzionalità. Ideale per completare la tua cameretta montessori. Realizzato in legno massello, l\'armadio evolutivo EverGrow Junior è il complemento ideale del letto montessori evolutivo zero+ per offrire un ambiente di crescita stimolante e indipendente. Progettato come armadio evolutivo grazie alla sua struttura modulare, il guardaroba evolutivo EverGrow Junior consente di personalizzare completamente lo spazio interno adattandosi alle esigenze in cambiamento del tuo bambino.',
+    category: 'armadio'
+  },
+  'Armadio EverGrow Junior 4 ripiani': {
+    handle: 'armadio-evergrow-junior-4-ripiani',
+    name: 'Armadio Evergrow Junior 4 ripiani',
+    description: 'L\'armadio evolutivo EverGrow Junior con 4 ripiani è pensato per chi ha a disposizione spazi ridotti e non può fare a meno di estetica e funzionalità. Ideale per completare la tua cameretta montessori. Include 4 ripiani per organizzare al meglio lo spazio.',
+    category: 'armadio'
+  },
+  'Cassetto EverGrow': {
+    handle: 'cassetto-evergrow',
+    name: 'Cassetto EverGrow',
+    description: 'Il Cassetto EverGrow grazie al sistema di chiusura ammortizzata soft-close, non sbatte e si chiude dolcemente. Realizzato in legno massello naturale, resistente e capiente. La ferramenta selezionata, solo di marca Blum®, garantisce durata e funzionalità impareggiabili, assicurando che ogni apertura e chiusura sia un gesto di semplicità e sicurezza.',
+    category: 'armadio'
+  },
+  'Ripiano EverGrow': {
+    handle: 'ripiano-evergrow',
+    name: 'Ripiano EverGrow',
+    description: 'Personalizza gli spazi interni dell\'armadio con il Ripiano regolabile EverGrow. Via via che diventano grandi l\'armadio cresce con loro e aumenta la necessità di organizzare gli spazi al meglio. Il Ripiano permette di rendere lo spazio dell\'Armadio EverGrow su misura rispetto alle esigenze del bambino.',
+    category: 'armadio'
+  },
+  'Ante EverGrow': {
+    handle: 'anta-evergrow',
+    name: 'Ante EverGrow',
+    description: 'Le Ante dell\'armadio montessori evolutivo EverGrow, pratiche e modulabili, uniscono estetica e funzionalità. Le Ante per l\'armadio evolutivo EverGrow Maxi o Junior sono modulabili e ti consentiranno di configurare l\'armadio in base all\'età del bambino. Realizzate con cornice in legno massello naturale certificato PEFC, mentre la parte frontale è in laminato.',
+    category: 'armadio'
+  },
+  'Modulo Top EverGrow': {
+    handle: 'top-maxi',
+    name: 'Modulo Top EverGrow',
+    description: 'Modulo multifunzione per l\'Armadio EverGrow, per chi desidera ancora più spazio nel proprio Armadio evolutivo. Il Modulo Top EverGrow è per chi desidera ancora più spazio nel proprio Armadio evolutivo EverGrow. Un modulo multifunzione che ti permette di adattare in qualsiasi momento l\'Armadio EverGrow alle nuove esigenze, e di estendere ulteriormente la capacità di stoccaggio in modo elegante e funzionale.',
+    category: 'armadio'
+  },
+  'Piedini EverGrow': {
+    handle: 'piedini-evergrow',
+    name: 'Piedini EverGrow',
+    description: 'Il kit di 4 piedini regolabili per il sistema armadio evolutivo EverGrow ti permette di alzare il guardaroba o i Top Portagiochi da terra quel tanto che basta per facilitare le operazioni di pulizia. Inoltre, potrai regolare l\'altezza in funzione delle eventuali irregolarità del pavimento: così l\'estetica e la stabilità di ogni componente dell\'armadio sono garantite! Il kit è compatibile con EverGrow Maxi, EverGrow Junior, e con i moduli Top Maxi e Top Junior.',
+    category: 'armadio'
+  },
+
+  // COMPLEMENTI
+  'Sediolina Montessori': {
+    handle: 'sediolina-montessori',
+    name: 'Sediolina Montessori',
+    description: 'La sedia Montessori , grazie alla seduta bassa a misura di bambina e bambino, è ideale in una cameretta montessoriana perché supporta la loro autonomia e fiducia in se stessi. Leggera e a misura di manine , la sediolina Montessori permette ai più piccoli di spostarla e compiere da soli piccole operazioni, stimola lo sviluppo dell’autonomia e dell’autoefficacia. Scegli tra la versione stondata , un classico senza tempo dell’\arredamento per bambini, e quella a forma di gatto per un design divertente!',
+    category: 'sedia montessori'
+  },
+  'Tenda gioco Tepee': {
+    handle: 'tenda-gioco',
+    name: 'Tenda gioco Tepee',
+    description: 'La tenda gioco Tepee è il complemento d\'arredo ideale per una camera montessoriana completa, permette al tuo bambino di esplorare, giocare e imparare in uno spazio accogliente. La tenda gioco Tepee è progettata con dimensioni e proporzioni adatte ai più piccoli, per garantire un ambiente accogliente e sicuro in cui giocare e esplorare. Offre uno spazio dedicato tutto per loro e stimola l\' indipendenza e l\'autosufficienza . I bambini possono decidere quando entrare o uscire dalla tenda, scegliere i giochi da portarci dentro e organizzare il proprio spazio come preferiscono. Scegli la versione con cuscino da terra , per un luogo più comodo e accogliente dove sedersi o sdraiarsi durante il gioco!',
+    category: 'accesssori'
+  },
+  'Cuscino da pavimento rotondo': {
+    handle: 'cuscino-da-pavimento-rotondo',
+    name: 'Cuscino da pavimento rotondo',
+    description: 'Il cuscino da pavimento rotondo aggiunge un tocco di comfort e stile alla cameretta Montessori. Il cuscino da pavimento rotondo offre un posto comodo e accogliente. La sua morbidezza stimola lo sviluppo sensoriale e motorio dei bambini, consentendo loro di esplorare il mondo circostante in modo attivo. Completa la camerina Montessori con il cuscino da pavimento rotondo,p uò essere collocato all\'interno della tenda gioco Teepee , creando uno spazio accogliente e confortevole.',
+    category: 'accesssori cuscini'
+  },
+  'Amaca Plumy': {
+    handle: 'amaca-plumy',
+    name: 'Amaca Plumy',
+    description: 'Morbida, avvolgente e sospesa, Plumy è l\'amaca Nabè per rilassarsi, giocare e sognare in totale sicurezza. Progettata per integrarsi con il letto evolutivo zero+ Dream , aggiunge un tocco di magia alla cameretta. Attenzione: l\'amaca Plumy è stata progettata per essere agganciata esclusivamente alla struttura del letto zero+ Dream . Ti consigliamo di sorvegliare i bambini di età inferiore ai 3 anni, durante i momenti di gioco con l\'amaca Plumy',
+    category: 'accessori'
+  },
+
+  // PARACOLPI E RIDUTTORI
+  'Paracolpi-Riduttore evolutivo zero+': {
+  handle: 'riduttore-evolutivo-zeropiu',
+  name: 'Paracolpi-Riduttore evolutivo zero+',
+  description: 'Il paracolpi-riduttore evolutivo zero+ è il primo per letti montessoriani che segue la crescita dei bambini e si adatta alle loro diverse esigenze nel tempo. E\' unico perché progettato di una dimensione extra che gli permette di avvolgere metà letto svolgendo più funzioni: - Per i primi mesi di vita dei bambini può essere posizionato con la classica forma a goccia così da contenere e proteggere il bambino nel letto a terra. - Successivamente può essere aperto e posizionato a "U" lungo le sponde protettive del tuo letto montessori nabè per dare ancora più protezione e morbidezza al bambino. Diventa così un vero paracolpi per lettini. I pratici laccetti consentono di legare il riduttore rapidamente in sicurezza. - Grazie all\' innovativa estensione , la forma ad "U" può essere completata per diventare rettangolare così da contenere i bambini più piccoli durante il loro sonno ed evitare cadute dal letto a terra nabè. - Quando i bambini cresceranno il paracolpi e riduttore evolutivo, ideale per il letto Montessori nabè, assolverà ancora la sua funzione come cuscino poggiaschiena da posizionare in fondo a letto. Il paracolpi-riduttore nabè è realizzato a mano in Italia e si compone una fodera esterna e una ricca imbottitura interna anch\'essa a sua volta rivestita. La fodera esterna è in puro cotone al 100% , non sottoposto a trattamenti chimici di sbiancamento. Questo gli dona quel bellissimo colore naturale che si abbina perfettamente con ogni arredo di legno, come il letto nabè , e una consistenza più sostenuta così da svolgere al meglio le sue funzioni di contenimento. La generosa imbottitura interna del paracolpi per lettini nabè è in fiocchi di ovatta di poliestere, un materiale ideale perché traspirante, igienico e duraturo. L\'imbottitura è a sua volta rivestita con una fodera (non apribile). Il paracolpi-riduttore nabè è dotato di 8 laccetti , 2 per lato per poterlo legare in sicurezza a più parti del letto. La sua misura di 260cm (lunghezza) x 16cm (altezza). Queste dimensioni, le più generose sul mercato, sono perfette per accogliere i bambini dalla nascita fino alle successive fasi di crescita. La dimensione dell\'estensione è invece di 45cm (lunghezza) x 16cm (altezza). Puoi acquistare il paracolpi-riduttore per lettini nabè sia per il letto nabè da 160x80 che per quello da 190x80 (dimensioni materasso). In entrambi casi potrai circondare circa la metà letto montessori. Acquistando un secondo riduttore potrai completare il perimetro del letto. Per il letto da una piazza e mezzo (190x120) serviranno invece 2 unità. Il paracolpi-riduttore evolutivo nabè è sfoderabile e lavabile in lavatrice a 30 gradi. La fodera esterna è molto resistente e pensata di una grammatura tale da resistere a numerosi lavaggi nel tempo.',
+  category: 'PARACOLPI E RIDUTTORI'
+},
+'Paracolpi per sponde protettive': {
+  handle: 'paracolpi',
+  name: 'Paracolpi per sponde protettive',
+  description: 'Morbido, pratico e salvaspazio: il paracolpi nabè è progettato appositamente per donare un tocco di morbidezza al tuo letto evolutivo zero+ e proteggere i tuoi bambini dagli urti, senza ridurre lo spazio nel lettino. Comodo e sicuro: si lega alle sponde con comodi lacci in velcro, per una tenuta maggiore durante la notte, il gioco e le operazioni di cambio letto quotidiane. Si monta e si smonta velocemente e grazie all’innovativa cucitura dell’interno con il rivestimento, l’imbottitura non si accartoccia e puoi lavare tutto in lavatrice a 30°. Qualità artigianale, curata nei minimi dettagli: con doppia ribattitura agli angoli per una finitura rotonda e senza spigoli, senza lacci a vista, rivestimento in puro cotone naturale certificato OEKO-TEX Standard® 100 . L’asola centrale garantisce una perfetta adattabilità ad ogni configurazione del letto nabè : che le sponde siano montate a destra o che lo siano a sinistra del letto, il paracolpi sarà sempre “dal dritto” e mai a rovescio! Dai un tocco di morbidezza alla tua cameretta Montessori !',
+  category: 'PARACOLPI'
+},
+'Imbottitura testiera e paracolpi sponde protettive per zero+ Fun': {
+  handle: 'paracolpi-sponde-protettive-per-zero-fun',
+  name: 'Imbottitura testiera e paracolpi sponde protettive per zero+ Fun',
+  description: 'Il Paracolpi con imbottitura per testiera è stato progettato per offrire maggiore comfort al letto zero+ Fun e proteggere i tuoi bambini dagli urti, senza ridurre lo spazio nel lettino.',
+  category: 'PARACOLPI'
+},
 
   // 🪜 TORRE MONTESSORIANA
   'Torre montessoriana Mia': {
