@@ -37,6 +37,57 @@ interface Product {
   inStock: boolean;
 }
 
+type QueueState = {
+  isInQueue: boolean;
+  pendingMessage: string | null;
+  ticketId: string | null;
+  statusEndpoint: string | null;
+  streamEndpoint: string | null;
+  initialPosition: number | null;
+  initialQueuedAhead: number | null;
+  retryAfter: number | null;
+  status: string | null;
+  error: string | null;
+  hasStreamStarted: boolean;
+};
+
+type QueueResponsePayload = {
+  ticketId: string;
+  position?: number;
+  queuedAhead?: number;
+  retryAfter?: number;
+  statusEndpoint: string;
+  streamEndpoint: string;
+  message?: string;
+};
+
+type QueueTicketStatus = {
+  ticketId: string;
+  status: "queued" | "processing" | "completed" | "failed" | "cancelled";
+  position: number;
+  queuedAhead: number;
+  retryAfter?: number;
+  enqueuedAt: number;
+  startedAt: number | null;
+  finishedAt: number | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+};
+
+const INITIAL_QUEUE_STATE: QueueState = {
+  isInQueue: false,
+  pendingMessage: null,
+  ticketId: null,
+  statusEndpoint: null,
+  streamEndpoint: null,
+  initialPosition: null,
+  initialQueuedAhead: null,
+  retryAfter: null,
+  status: null,
+  error: null,
+  hasStreamStarted: false,
+};
+
 const UserBubble = ({ text }: { text: string }) => {
   return <div className={styles.userMessage}>{text}</div>;
 };
@@ -233,10 +284,9 @@ const Chat = ({
     }
     return `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   });
-  const [queueInfo, setQueueInfo] = useState<{ isInQueue: boolean; pendingMessage: string | null }>({
-    isInQueue: false,
-    pendingMessage: null
-  });
+  const [queueInfo, setQueueInfo] = useState<QueueState>(() => ({
+    ...INITIAL_QUEUE_STATE,
+  }));
 
   // Inizializza cart count
   useEffect(() => {
@@ -354,19 +404,24 @@ const Chat = ({
     }
   }, []);
 
-  // 🎯 Callback quando l'utente esce dalla coda
-  const handleQueueReady = useCallback(() => {
-    console.log('✅ Utente uscito dalla coda - Reinvio messaggio');
-    const pending = queueInfo.pendingMessage;
-    setQueueInfo({ isInQueue: false, pendingMessage: null });
-    
-    // Reinvia il messaggio pendente
-    if (pending && threadId) {
-      setTimeout(() => {
-        internalSendMessage(pending);
-      }, 200);
-    }
-  }, [queueInfo.pendingMessage, threadId]);
+  const handleQueueStatusUpdate = useCallback((status: QueueTicketStatus) => {
+    setQueueInfo((prev) => {
+      if (!prev.isInQueue || prev.ticketId !== status.ticketId) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        status: status.status,
+        retryAfter: status.retryAfter ?? prev.retryAfter,
+        initialPosition:
+          prev.initialPosition ?? (status.position > 0 ? status.position : prev.initialPosition),
+        initialQueuedAhead:
+          prev.initialQueuedAhead ?? status.queuedAhead,
+        error: status.errorMessage ?? null,
+      };
+    });
+  }, []);
 
   const internalSendMessage = async (text: string) => {
     if (!threadId) {
@@ -395,6 +450,51 @@ const Chat = ({
         }
       );
 
+      if (response.status === 202) {
+        let queueData: QueueResponsePayload | null = null;
+        try {
+          queueData = (await response.json()) as QueueResponsePayload;
+        } catch {
+          throw new Error(
+            "Non sono riuscito a recuperare le informazioni sulla coda. Riprova tra qualche istante."
+          );
+        }
+
+        if (
+          !queueData ||
+          !queueData.ticketId ||
+          !queueData.streamEndpoint ||
+          !queueData.statusEndpoint
+        ) {
+          throw new Error(
+            "Le informazioni restituite dalla coda non sono valide."
+          );
+        }
+
+        setQueueInfo({
+          ...INITIAL_QUEUE_STATE,
+          isInQueue: true,
+          pendingMessage: text,
+          ticketId: queueData.ticketId,
+          statusEndpoint: queueData.statusEndpoint,
+          streamEndpoint: queueData.streamEndpoint,
+          initialPosition: queueData.position ?? null,
+          initialQueuedAhead: queueData.queuedAhead ?? null,
+          retryAfter: queueData.retryAfter ?? null,
+          status: "queued",
+          hasStreamStarted: false,
+        });
+
+        setChatState((prev) => ({ ...prev, isLoading: false }));
+
+        if (hasProductQuery) {
+          fetchProductsInBackground();
+        }
+
+        void fetchQueuedStream(queueData);
+        return;
+      }
+
       // 🚨 Gestione errori specifici (sovraccarico, timeout)
       if (!response.ok) {
         let errorMessage = "Mi dispiace, ho avuto un problema tecnico. Prova di nuovo tra qualche istante.";
@@ -405,7 +505,11 @@ const Chat = ({
           if (response.status === 503 || errorData.code === 'QUEUE_FULL' || errorData.code === 'SYSTEM_OVERLOADED') {
             // 🚫 Sistema sovraccarico - Mostra componente coda
             console.log('🚦 Sistema sovraccarico - Attivazione coda visuale');
-            setQueueInfo({ isInQueue: true, pendingMessage: text });
+            setQueueInfo({
+              ...INITIAL_QUEUE_STATE,
+              isInQueue: true,
+              pendingMessage: text,
+            });
             setChatState(prev => ({ ...prev, inputDisabled: false, isLoading: false }));
             return;
           } else if (response.status === 408 || errorData.code === 'TIMEOUT') {
@@ -595,6 +699,7 @@ const Chat = ({
     }
     
     setChatState(prev => ({ ...prev, inputDisabled: false, isLoading: false }));
+    setQueueInfo(() => ({ ...INITIAL_QUEUE_STATE }));
     
     setTimeout(() => {
       if (!isUserNearBottom()) {
@@ -644,6 +749,76 @@ const Chat = ({
         handleRequiresAction(event);
       if (event.event === "thread.run.completed") handleRunCompleted();
     });
+  };
+
+  const fetchQueuedStream = async (payload: QueueResponsePayload) => {
+    setQueueInfo((prev) => {
+      if (!prev.isInQueue || prev.ticketId !== payload.ticketId || prev.hasStreamStarted) {
+        return prev;
+      }
+      return {
+        ...prev,
+        hasStreamStarted: true,
+      };
+    });
+
+    try {
+      const response = await fetch(payload.streamEndpoint);
+
+      if (!response.ok) {
+        let message = "Errore nel recupero della risposta dalla coda.";
+        try {
+          const errorPayload = await response.clone().json();
+          if (errorPayload?.error) {
+            message = errorPayload.error;
+          }
+        } catch {
+          try {
+            message = await response.text();
+          } catch {
+            // fallback al messaggio di default
+          }
+        }
+        throw new Error(message);
+      }
+
+      if (!response.body) {
+        throw new Error("Stream non disponibile per questo ticket.");
+      }
+
+      setQueueInfo((prev) => ({
+        ...prev,
+        isInQueue: false,
+        pendingMessage: null,
+        status: "processing",
+      }));
+
+      setChatState((prev) => ({ ...prev, isLoading: true }));
+
+      const stream = AssistantStream.fromReadableStream(response.body);
+      handleReadableStream(stream);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Non sono riuscito a completare la richiesta. Riprova tra qualche istante.";
+
+      setQueueInfo({ ...INITIAL_QUEUE_STATE, error: message });
+      setChatState((prev) => ({ ...prev, inputDisabled: false, isLoading: false }));
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: message,
+        },
+      ]);
+
+      performanceMonitor.recordApiError(
+        "assistant-queue",
+        error instanceof Error ? error.message : "Unknown error"
+      );
+    }
   };
 
   const appendToLastMessage = (text: string) => {
@@ -1001,7 +1176,7 @@ const Chat = ({
       </div>
 
       {/* 🎯 Componente Coda - Mostra posizione quando utente è in coda */}
-      {queueInfo.isInQueue && (
+      {queueInfo.isInQueue && queueInfo.ticketId && queueInfo.statusEndpoint && (
         <div style={{
           position: 'absolute',
           top: '50%',
@@ -1012,8 +1187,15 @@ const Chat = ({
           maxWidth: '400px'
         }}>
           <QueueStatus 
-            userId={userId}
-            onReady={handleQueueReady}
+            ticketId={queueInfo.ticketId}
+            statusEndpoint={queueInfo.statusEndpoint}
+            initialPosition={queueInfo.initialPosition ?? 1}
+            initialQueuedAhead={
+              queueInfo.initialQueuedAhead ??
+              Math.max(0, (queueInfo.initialPosition ?? 1) - 1)
+            }
+            retryAfterHint={queueInfo.retryAfter}
+            onStatus={handleQueueStatusUpdate}
           />
         </div>
       )}
