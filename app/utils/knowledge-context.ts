@@ -14,7 +14,16 @@ ESEMPIO:
 **Letto perfetto per te:** Ti consiglio questo modello perché regala al bambino uno spazio autonomo e sicuro, ideale per crescere con serenità.
 [PRODOTTO: letto-montessori-casetta-baldacchino-zeropiu]`;
 
+const MAX_KNOWLEDGE_LENGTH = 9000;
+const MAX_MATCHED_SECTIONS = 10;
+const FALLBACK_SECTION_COUNT = 6;
+
 const headingRegex = /^[A-ZÀ-ÖØ-Ý][A-ZÀ-ÖØ-Ý0-9\s\+\-\/]*$/;
+
+type PreparedSection = {
+  raw: string;
+  normalized: string;
+};
 
 function looksLikeHeading(value: string) {
   const cleaned = value.replace(/[^\wÀ-ÖØ-öø-ÿ\s\+\-\/]/g, "").trim();
@@ -57,6 +66,13 @@ function splitSections(rawContent: string) {
   return sections;
 }
 
+function prepareSections(rawContent: string): PreparedSection[] {
+  return splitSections(rawContent).map((section) => ({
+    raw: section,
+    normalized: section.toLowerCase(),
+  }));
+}
+
 function extractKeywords(text: string) {
   return Array.from(
     new Set(
@@ -68,61 +84,69 @@ function extractKeywords(text: string) {
   );
 }
 
-function scoreSection(section: string, keywords: string[]) {
-  const normalized = section.toLowerCase();
+function scoreSection(section: PreparedSection, keywords: string[]) {
   let score = 0;
   for (const keyword of keywords) {
-    if (normalized.includes(keyword)) {
+    if (section.normalized.includes(keyword)) {
       score += 1;
     }
   }
   return score;
 }
 
-export function buildKnowledgeContext(userMessage: string) {
-  const [introPart, basePart] = NABE_KNOWLEDGE_BASE.split(BASE_MARKER);
-  const intro = introPart ? `${introPart.trim()}\n\n${BASE_MARKER}` : "";
-  const baseContent = basePart ? basePart.trim() : NABE_KNOWLEDGE_BASE;
-
-  const sections = splitSections(baseContent);
-  const keywords = extractKeywords(userMessage);
-
-  const ranked = sections
-    .map((section) => ({
-      section,
-      score: keywords.length ? scoreSection(section, keywords) : 0,
-    }))
-    .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map((item) => item.section);
-
-  const fallbackSections = sections.slice(0, 6);
-  const selectedSections =
-    ranked.length > 0 ? ranked.slice(0, 10) : fallbackSections;
-
-  const productReference = NABE_PRODUCT_HANDLES.map(
+function buildProductReference() {
+  return NABE_PRODUCT_HANDLES.map(
     (product) =>
       `${product.name}: usa [PRODOTTO: ${product.id}] quando consigli questo articolo; vantaggio principale: ${product.focus}.`
   ).join("\n");
+}
 
-  const knowledgeParts = [intro, ...selectedSections, PRODUCT_SUGGESTION_GUIDE].filter(
-    Boolean
-  );
+const [RAW_INTRO, RAW_BASE] = NABE_KNOWLEDGE_BASE.split(BASE_MARKER);
+const INTRO_SECTION = RAW_INTRO ? `${RAW_INTRO.trim()}\n\n${BASE_MARKER}` : "";
+const BASE_CONTENT = RAW_BASE ? RAW_BASE.trim() : NABE_KNOWLEDGE_BASE;
+const PREPARED_SECTIONS = prepareSections(BASE_CONTENT);
+const FALLBACK_SECTIONS = PREPARED_SECTIONS.slice(0, FALLBACK_SECTION_COUNT);
+const PRODUCT_REFERENCE = buildProductReference();
+
+export function buildKnowledgeContext(userMessage: string) {
+  const keywords = extractKeywords(userMessage);
+
+  const ranked =
+    keywords.length > 0
+      ? PREPARED_SECTIONS.map((section) => ({
+          section,
+          score: scoreSection(section, keywords),
+        }))
+          .filter((item) => item.score > 0)
+          .sort((a, b) => b.score - a.score)
+      : [];
+
+  const selectedSections =
+    ranked.length > 0
+      ? ranked.slice(0, MAX_MATCHED_SECTIONS).map((item) => item.section.raw)
+      : FALLBACK_SECTIONS.map((section) => section.raw);
+
+  const knowledgeParts = [
+    INTRO_SECTION,
+    ...selectedSections,
+    PRODUCT_SUGGESTION_GUIDE,
+  ].filter(Boolean);
   let baseKnowledge = knowledgeParts.join("\n\n");
 
-  const maxLength = 9000;
-  const productReferenceLength = productReference.length + 2; // include spacing
+  const productReferenceLength = PRODUCT_REFERENCE.length + 2; // include spacing
 
-  if (baseKnowledge.length > maxLength - productReferenceLength) {
+  if (baseKnowledge.length > MAX_KNOWLEDGE_LENGTH - productReferenceLength) {
     baseKnowledge = baseKnowledge.slice(
       0,
-      Math.max(0, maxLength - productReferenceLength)
+      Math.max(0, MAX_KNOWLEDGE_LENGTH - productReferenceLength)
     );
   }
 
-  const combined = [baseKnowledge.trim(), productReference].filter(Boolean).join(
-    "\n\n"
-  );
+  const combined = [baseKnowledge.trim(), PRODUCT_REFERENCE]
+    .filter(Boolean)
+    .join("\n\n");
 
-  return combined.length > maxLength ? combined.slice(0, maxLength) : combined;
+  return combined.length > MAX_KNOWLEDGE_LENGTH
+    ? combined.slice(0, MAX_KNOWLEDGE_LENGTH)
+    : combined;
 }
