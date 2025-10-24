@@ -11,6 +11,7 @@ import { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/ru
 import ContactForm from "./contact-form";
 import ProductCard from "./product-card";
 import FloatingContact from "./floating-contact";
+import QueueStatus from "./queue-status";
 import { addToCart, getCart, getCartItemCount } from "../lib/cart";
 import { trackAddToCart, trackProductView } from "../lib/shopify-analytics";
 import { performanceMonitor } from "../utils/performance-monitor";
@@ -219,6 +220,23 @@ const Chat = ({
   const [cartCount, setCartCount] = useState(0);
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
   const [showScrollToEnd, setShowScrollToEnd] = useState(false);
+  
+  // 🎯 Stati per sistema di coda - AGGIUNTI
+  const [userId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      let id = sessionStorage.getItem('chatUserId');
+      if (!id) {
+        id = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        sessionStorage.setItem('chatUserId', id);
+      }
+      return id;
+    }
+    return `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  });
+  const [queueInfo, setQueueInfo] = useState<{ isInQueue: boolean; pendingMessage: string | null }>({
+    isInQueue: false,
+    pendingMessage: null
+  });
 
   // Inizializza cart count
   useEffect(() => {
@@ -235,7 +253,7 @@ const Chat = ({
   const isUserNearBottom = useCallback(() => {
     if (!messagesContainerRef.current) return true;
     const container = messagesContainerRef.current;
-    const threshold = 150; // pixels dal fondo
+    const threshold = 150;
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
     return isNearBottom;
   }, []);
@@ -248,10 +266,6 @@ const Chat = ({
   // 🔄 Monitora la posizione dello scroll per decidere se mostrare il bottone
   const handleScroll = useCallback(() => {
     const isNear = isUserNearBottom();
-    // Mostra il bottone solo se:
-    // 1. L'utente non è vicino al fondo E
-    // 2. C'è almeno un messaggio dell'assistente E
-    // 3. L'assistente non sta attualmente scrivendo (per evitare flickering)
     const shouldShow = !isNear && messages.length > 0 && !chatState.isLoading;
     setShowScrollToEnd(shouldShow);
   }, [isUserNearBottom, messages.length, chatState.isLoading]);
@@ -265,12 +279,8 @@ const Chat = ({
     }
   }, [handleScroll]);
   
-  // ✅ Auto-scroll solo quando:
-  // 1. L'utente invia un messaggio
-  // 2. L'assistente INIZIA a rispondere (non durante)
-  // 3. L'utente clicca il bottone per andare al fondo
+  // ✅ Auto-scroll solo quando l'utente invia un messaggio
   useEffect(() => {
-    // Auto-scroll solo per i messaggi dell'utente, non durante la scrittura del bot
     const lastMessage = messages[messages.length - 1];
     if (lastMessage && lastMessage.role === 'user') {
       scrollToBottom();
@@ -344,28 +354,43 @@ const Chat = ({
     }
   }, []);
 
-  const sendMessage = async (text: string) => {
+  // 🎯 Callback quando l'utente esce dalla coda
+  const handleQueueReady = useCallback(() => {
+    console.log('✅ Utente uscito dalla coda - Reinvio messaggio');
+    const pending = queueInfo.pendingMessage;
+    setQueueInfo({ isInQueue: false, pendingMessage: null });
+    
+    // Reinvia il messaggio pendente
+    if (pending && threadId) {
+      setTimeout(() => {
+        internalSendMessage(pending);
+      }, 200);
+    }
+  }, [queueInfo.pendingMessage, threadId]);
+
+  const internalSendMessage = async (text: string) => {
     if (!threadId) {
       console.warn("Thread non pronto, messaggio ignorato.");
       return;
     }
 
-    // Inizia monitoraggio performance
     const startTime = performanceMonitor.startChatResponse();
     setResponseStartTime(startTime);
-    // Rileva query prodotti
+    
     const productKeywords = ['letto', 'prodotto', 'prezzo', 'costo', 'catalogo', 'modello', 'disponibilità', 'montessori', 'bambino', 'sponde', 'materasso'];
     const hasProductQuery = productKeywords.some(keyword => 
       text.toLowerCase().includes(keyword)
     );
 
     try {
+      // 🎯 Includi userId per tracking coda
       const response = await fetch(
         `/api/assistants/threads/${threadId}/messages`,
         {
           method: "POST",
           body: JSON.stringify({
             content: text,
+            userId: userId,
           }),
         }
       );
@@ -373,19 +398,18 @@ const Chat = ({
       // 🚨 Gestione errori specifici (sovraccarico, timeout)
       if (!response.ok) {
         let errorMessage = "Mi dispiace, ho avuto un problema tecnico. Prova di nuovo tra qualche istante.";
-        let retryAfter = 5;
-
+        
         try {
           const errorData = await response.json();
 
           if (response.status === 503 || errorData.code === 'QUEUE_FULL' || errorData.code === 'SYSTEM_OVERLOADED') {
-            // Sistema sovraccarico
-            errorMessage = `⚠️ Il sistema è momentaneamente sovraccarico. Ti preghiamo di riprovare tra ${errorData.retryAfter || 10} secondi.`;
-            retryAfter = errorData.retryAfter || 10;
+            // 🚫 Sistema sovraccarico - Mostra componente coda
+            console.log('🚦 Sistema sovraccarico - Attivazione coda visuale');
+            setQueueInfo({ isInQueue: true, pendingMessage: text });
+            setChatState(prev => ({ ...prev, inputDisabled: false, isLoading: false }));
+            return;
           } else if (response.status === 408 || errorData.code === 'TIMEOUT') {
-            // Timeout
             errorMessage = "⏱️ La richiesta ha impiegato troppo tempo. Il sistema è sotto carico, riprova tra qualche secondo.";
-            retryAfter = errorData.retryAfter || 5;
           } else if (errorData.error) {
             errorMessage = errorData.error;
           }
@@ -427,13 +451,14 @@ const Chat = ({
       return;
     }
 
-    // FETCH PRODOTTI IN BACKGROUND - Non bloccante
+    // FETCH PRODOTTI IN BACKGROUND
     if (hasProductQuery) {
       fetchProductsInBackground();
     }
   };
 
-  // Fetch prodotti in background senza bloccare l'UI
+  const sendMessage = internalSendMessage;
+
   const fetchProductsInBackground = async () => {
     try {
       console.log('🛍️ [Background] Fetching products for future responses...');
@@ -448,13 +473,13 @@ const Chat = ({
       } else {
         performanceMonitor.recordCacheMiss();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.warn('⚠️ [Background] Products fetch failed (non-blocking):', error.message);
       performanceMonitor.recordApiError('products', error.message);
     }
   };
 
-  const submitActionResult = async (runId, toolCallOutputs) => {
+  const submitActionResult = async (runId: any, toolCallOutputs: any) => {
     const response = await fetch(
       `/api/assistants/threads/${threadId}/actions`,
       {
@@ -480,7 +505,6 @@ const Chat = ({
       return;
     }
 
-    // Controlla se l'utente sta rifiutando di essere contattato
     const refusalKeywords = ['no grazie', 'non voglio', 'non interessato', 'no thanks', 'non ora', 'magari dopo', 'non mi interessa', 'non ho bisogno', 'preferirei di no', 'non adesso'];
     const contactKeywords = ['contatto', 'contattare', 'preventivo', 'modulo', 'email', 'telefono', 'ricontattare', 'chiamare'];
     const userInputLower = outboundText.toLowerCase();
@@ -491,7 +515,6 @@ const Chat = ({
       setChatState(prev => ({ ...prev, showAlternativeOffer: true }));
     }
     
-    // Se l'utente chiede esplicitamente di essere contattato, riattiva il sistema
     if (wantsContact && chatState.contactDeclined) {
       setChatState(prev => ({ ...prev, contactDeclined: false, showAlternativeOffer: false }));
     }
@@ -504,7 +527,6 @@ const Chat = ({
     setUserInput("");
     setChatState(prev => ({ ...prev, inputDisabled: true, isLoading: true }));
     
-    // Nascondi il bottone scroll quando l'utente invia un messaggio
     setShowScrollToEnd(false);
     
     requestAnimationFrame(() => {
@@ -515,7 +537,7 @@ const Chat = ({
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: any) => {
     e.preventDefault();
     processUserMessage();
   };
@@ -527,25 +549,25 @@ const Chat = ({
     }
   };
 
-  const handleTextDelta = (delta) => {
+  const handleTextDelta = (delta: any) => {
     if (delta.value != null) {
       appendToLastMessage(delta.value);
-    };
+    }
     if (delta.annotations != null) {
       annotateLastMessage(delta.annotations);
     }
   };
 
-  const handleImageFileDone = (image) => {
+  const handleImageFileDone = (image: any) => {
     appendToLastMessage(`\n![${image.file_id}](/api/files/${image.file_id})\n`);
-  }
+  };
 
-  const toolCallCreated = (toolCall) => {
+  const toolCallCreated = (toolCall: any) => {
     if (toolCall.type != "code_interpreter") return;
     appendMessage("code", "");
   };
 
-  const toolCallDelta = (delta, snapshot) => {
+  const toolCallDelta = (delta: any, snapshot: any) => {
     if (delta.type != "code_interpreter") return;
     if (!delta.code_interpreter.input) return;
     appendToLastMessage(delta.code_interpreter.input);
@@ -557,7 +579,7 @@ const Chat = ({
     const runId = event.data.id;
     const toolCalls = event.data.required_action.submit_tool_outputs.tool_calls;
     const toolCallOutputs = await Promise.all(
-      toolCalls.map(async (toolCall) => {
+      toolCalls.map(async (toolCall: any) => {
         const result = await functionCallHandler(toolCall);
         return { output: result, tool_call_id: toolCall.id };
       })
@@ -567,7 +589,6 @@ const Chat = ({
   };
 
   const handleRunCompleted = async () => {
-    // Completa monitoraggio performance
     if (responseStartTime) {
       performanceMonitor.endChatResponse(responseStartTime);
       setResponseStartTime(null);
@@ -575,26 +596,23 @@ const Chat = ({
     
     setChatState(prev => ({ ...prev, inputDisabled: false, isLoading: false }));
     
-    // Mostra il bottone scroll alla fine del messaggio se l'utente non è in fondo
     setTimeout(() => {
       if (!isUserNearBottom()) {
         setShowScrollToEnd(true);
       }
     }, 500);
     
-    // 🛍️ PRIORITÀ ALLE CARD PRODOTTO: Cerca sempre prodotti nei messaggi AI
     setTimeout(async () => {
       setMessages((prevMessages) => {
         const lastMessage = prevMessages[prevMessages.length - 1];
         
         if (lastMessage && lastMessage.role === 'assistant' && lastMessage.text) {
-          // Cerca prodotti SEMPRE per mostrare le belle card invece dei link testuali
           extractAndFetchProducts(lastMessage.text).then((products) => {
             if (products.length > 0) {
-              console.log(`✅ Found ${products.length} products in AI response:`, products.map(p => p.name));
+              console.log(`✅ Found ${products.length} products in AI response:`, products.map((p: any) => p.name));
               console.log('🎯 Showing product cards instead of text links');
               setMessages((msgs) => {
-                const lastMsg = msgs[msgs.length - 1];
+                const lastMsg: any = msgs[msgs.length - 1];
                 if (lastMsg.role === 'assistant') {
                   return [
                     ...msgs.slice(0, -1),
@@ -628,8 +646,8 @@ const Chat = ({
     });
   };
 
-  const appendToLastMessage = (text) => {
-    setMessages((prevMessages) => {
+  const appendToLastMessage = (text: string) => {
+    setMessages((prevMessages: any) => {
       const lastMessage = prevMessages[prevMessages.length - 1];
       const updatedLastMessage = {
         ...lastMessage,
@@ -639,12 +657,10 @@ const Chat = ({
     });
   };
 
-  // 🛍️ FUNZIONE MIGLIORATA: Ricerca prodotti per handle Shopify
   const extractAndFetchProducts = async (text: string) => {
     try {
       console.log('🔍 Searching for [PRODOTTO: handle] tags in text...');
       
-      // Cerca tag [PRODOTTO: handle] nel testo
       const productTagRegex = /\[PRODOTTO:\s*([^\]]+)\]/gi;
       const matches = Array.from(text.matchAll(productTagRegex));
       
@@ -655,10 +671,8 @@ const Chat = ({
       
       console.log(`🎯 Found ${matches.length} product tags:`, matches.map(m => m[1]));
       
-      // Estrai gli handle dei prodotti
       const productHandles = matches.map(match => match[1].trim());
       
-      // Fetch tutti i prodotti da Shopify
       const response = await fetch('/api/products?action=list');
       if (!response.ok) {
         console.error('❌ Products API failed');
@@ -673,7 +687,6 @@ const Chat = ({
       
       console.log(`📦 Total products available: ${data.products.length}`);
       
-      // 🎯 MATCHING PERFETTO: l'id è già l'handle di Shopify
       const foundProducts = productHandles
         .map(handle => {
           const product = data.products.find((p: Product) => p.id === handle);
@@ -682,28 +695,26 @@ const Chat = ({
             console.log(`🔗 Product URL: ${product.url}`);
           } else {
             console.log(`❌ Product not found by handle: ${handle}`);
-            // Debug: mostra alcuni handle disponibili per debugging
-            const availableHandles = data.products.slice(0, 3).map(p => p.id);
+            const availableHandles = data.products.slice(0, 3).map((p: any) => p.id);
             console.log('🔍 Sample available handles:', availableHandles);
           }
           return product;
         })
-        .filter(Boolean); // Rimuovi null/undefined
+        .filter(Boolean);
       
       console.log(`✅ Total products to display as cards: ${foundProducts.length}`);
       
-      return foundProducts.slice(0, 6); // Max 6 prodotti per performance
+      return foundProducts.slice(0, 6);
     } catch (error) {
       console.error('❌ Error fetching products:', error);
       return [];
     }
   };
 
-  const appendMessage = (role, text) => {
-    setMessages((prevMessages) => [...prevMessages, { role, text }]);
+  const appendMessage = (role: string, text: string) => {
+    setMessages((prevMessages: any) => [...prevMessages, { role, text }]);
   };
 
-  // Funzioni per gestire il rifiuto del contatto
   const handleContactDeclined = () => {
     setChatState(prev => ({ 
       ...prev, 
@@ -711,22 +722,19 @@ const Chat = ({
       showAlternativeOffer: false, 
       showFloatingContact: true 
     }));
-    // Dopo 30 secondi, riattiva l'offerta alternativa
     setTimeout(() => {
       setChatState(prev => ({ ...prev, showAlternativeOffer: true }));
-    }, 30000); // Aumentato a 30 secondi per dare più spazio
+    }, 30000);
   };
 
-  // Funzione per convertire i messaggi in formato cronologia chat
   const getChatHistory = () => {
-    return messages.map(msg => ({
+    return messages.map((msg: any) => ({
       role: msg.role === 'assistant' ? 'assistant' : 'user',
       content: msg.text,
       timestamp: new Date().toISOString()
     }));
   };
 
-  // Gestisce successo del form floating contact
   const handleFloatingContactSuccess = () => {
     setChatState(prev => ({ 
       ...prev, 
@@ -736,7 +744,6 @@ const Chat = ({
     }));
   };
 
-  // Gestisci aggiunta al carrello
   const handleAddToCart = (product: any) => {
     try {
       addToCart({
@@ -747,14 +754,11 @@ const Chat = ({
         url: product.url
       });
       
-      // Aggiorna count locale
       const cart = getCart();
       setCartCount(getCartItemCount(cart));
       
-      // Track analytics Shopify
       trackAddToCart(product.id, product.name, 1);
       
-      // Mostra notifica
       console.log('✅ Prodotto aggiunto al carrello:', product.name);
       alert(`✅ ${product.name} aggiunto al carrello!`);
     } catch (error) {
@@ -763,26 +767,40 @@ const Chat = ({
     }
   };
 
-  const annotateLastMessage = (annotations) => {
-    setMessages((prevMessages) => {
+  const annotateLastMessage = (annotations: any) => {
+    setMessages((prevMessages: any) => {
       const lastMessage = prevMessages[prevMessages.length - 1];
       const updatedLastMessage = {
         ...lastMessage,
       };
-      annotations.forEach((annotation) => {
+      annotations.forEach((annotation: any) => {
         if (annotation.type === 'file_path') {
           updatedLastMessage.text = updatedLastMessage.text.replaceAll(
             annotation.text,
             `/api/files/${annotation.file_path.file_id}`
           );
         }
-      })
+      });
       return [...prevMessages.slice(0, -1), updatedLastMessage];
     });
-  }
+  };
 
   return (
     <div className={styles.chatContainer} style={{ position: 'relative' }}>
+      {/* 🌑 Overlay scuro quando coda è attiva */}
+      {queueInfo.isInQueue && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 1000,
+          backdropFilter: 'blur(3px)'
+        }} />
+      )}
+      
       <div className={styles.chatHeader}>
         <div className={styles.chatHeaderContent}>
           <div className={styles.chatHeaderIdentity}>
@@ -804,223 +822,239 @@ const Chat = ({
           </div>
         </div>
       </div>
+      
       <div className={styles.messages} ref={messagesContainerRef}>
-          {messages.length === 0 && (
-            <div className={styles.welcomeMessage}>
-              {initialContext?.fromShopify ? (
-                // Messaggio personalizzato per clienti che arrivano da Shopify
-                <>
-                  <h2>👋 Ciao! Vedo che stai guardando {initialContext.product || 'un nostro prodotto'}</h2>
-                  <p>
-                    Perfetto! Sono l&apos;assistente AI di Nabè e posso aiutarti con qualsiasi domanda su questo prodotto 
-                    o consigliarti alternative perfette per le tue esigenze.
+        {messages.length === 0 && (
+          <div className={styles.welcomeMessage}>
+            {initialContext?.fromShopify ? (
+              <>
+                <h2>👋 Ciao! Vedo che stai guardando {initialContext.product || 'un nostro prodotto'}</h2>
+                <p>
+                  Perfetto! Sono l&apos;assistente AI di Nabè e posso aiutarti con qualsiasi domanda su questo prodotto 
+                  o consigliarti alternative perfette per le tue esigenze.
+                </p>
+                <div className={styles.quickQuestions}>
+                  <p className={styles.quickQuestionsTitle}>
+                    Ecco alcune domande che potresti volermi fare:
                   </p>
-                  <div className={styles.quickQuestions}>
-                    <p className={styles.quickQuestionsTitle}>
-                      Ecco alcune domande che potresti volermi fare:
-                    </p>
-                    <button
-                      onClick={() =>
-                        handlePrefillQuestion(`Mi puoi dare più informazioni su ${initialContext.product || 'questo prodotto'}?`)
-                      }
-                      className={styles.quickQuestion}
-                    >
-                      Mi puoi dare più informazioni su {initialContext.product || 'questo prodotto'}?
-                    </button>
-                    <button
-                      onClick={() =>
-                        handlePrefillQuestion("È adatto per un bambino di [età]? Come si configura?")
-                      }
-                      className={styles.quickQuestion}
-                    >
-                      È adatto per un bambino di [età]? Come si configura?
-                    </button>
-                    <button
-                      onClick={() =>
-                        handlePrefillQuestion("Ci sono alternative o accessori che consigli?")
-                      }
-                      className={styles.quickQuestion}
-                    >
-                      Ci sono alternative o accessori che consigli?
-                    </button>
-                  </div>
-                </>
-              ) : (
-                // Messaggio standard per accesso diretto
-                <>
-                  <h2>Benvenutə in Nabè</h2>
-                  <p>
-                    Sono il tuo consulente specializzato per trovare il letto
-                    perfetto per il tuo bambino. Insieme creeremo il rifugio dei
-                    sogni ideale!
-                  </p>
-                  <div className={styles.quickQuestions}>
-                    <p className={styles.quickQuestionsTitle}>
-                      Iniziamo con queste domande:
-                    </p>
-                    <button
-                      onClick={() =>
-                        handlePrefillQuestion("Ho un bambino di età compresa tra 0 e 3 anni, che letto mi consigli?")
-                      }
-                      className={styles.quickQuestion}
-                    >
-                      Ho un bambino di età compresa tra 0 e 3 anni, che letto mi consigli?
-                    </button>
-                    <button
-                      onClick={() =>
-                        handlePrefillQuestion("Ho un bambino di età superiore ai 3 anni, che letto mi consigli?")
-                      }
-                      className={styles.quickQuestion}
-                    >
-                      Ho un bambino di età superiore ai 3 anni, che letto mi consigli?
-                    </button>
-                    <button
-                      onClick={() =>
-                        handlePrefillQuestion(
-                          "Ho due bambini, cosa mi consigli di fare?"
-                        )
-                      }
-                      className={styles.quickQuestion}
-                    >
-                      Ho due bambini, cosa mi consigli di fare?
-                    </button>
-                    <button
-                      onClick={() =>
-                        handlePrefillQuestion(
-                          "La cameretta è piccola, che dimensioni mi consigli?"
-                        )
-                      }
-                      className={styles.quickQuestion}
-                    >
-                      La cameretta è piccola, che dimensioni mi consigli?
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {messages.map((msg, index) => {
-            const isAssistant = msg.role === "assistant";
-            const isUser = msg.role === "user";
-            const rowClass = [
-              styles.messageRow,
-              isAssistant ? styles.assistantRow : "",
-              isUser ? styles.userRow : "",
-            ]
-              .filter(Boolean)
-              .join(" ");
-
-            const isLastAssistantMessage =
-              isAssistant &&
-              chatState.hasAssistantResponded &&
-              !chatState.isLoading &&
-              index === messages.length - 1;
-
-            // Logica per mostrare il form di contatto
-            const shouldShowContactForm =
-              isLastAssistantMessage &&
-              !chatState.contactDeclined &&
-              !chatState.showAlternativeOffer;
-            const shouldShowAlternative =
-              isLastAssistantMessage && chatState.showAlternativeOffer;
-
-            return (
-              <div key={index} className={rowClass}>
-                {isAssistant && (
-                  <div className={styles.avatarAssistant}>
-                    <Image
-                      src="/logo_nabè.png"
-                      alt="Assistente Nabè"
-                      width={28}
-                      height={28}
-                    />
-                  </div>
-                )}
-                {isUser && (
-                  <div className={styles.avatarUser} aria-hidden="true">
-                    Tu
-                  </div>
-                )}
-                {!isAssistant && !isUser && (
-                  <div className={styles.avatarCode} aria-hidden="true">
-                    {"</>"}
-                  </div>
-                )}
-                <div className={styles.messageBubble}>
-                  <Message
-                    role={msg.role}
-                    text={msg.text}
-                    showContactForm={shouldShowContactForm}
-                    chatHistory={
-                      shouldShowContactForm ? getChatHistory() : undefined
+                  <button
+                    onClick={() =>
+                      handlePrefillQuestion(`Mi puoi dare più informazioni su ${initialContext.product || 'questo prodotto'}?`)
                     }
-                    onContactDeclined={handleContactDeclined}
-                    showAlternativeOffer={shouldShowAlternative}
-                    products={msg.products}
-                    onAddToCart={handleAddToCart}
-                  />
+                    className={styles.quickQuestion}
+                  >
+                    Mi puoi dare più informazioni su {initialContext.product || 'questo prodotto'}?
+                  </button>
+                  <button
+                    onClick={() =>
+                      handlePrefillQuestion("È adatto per un bambino di [età]? Come si configura?")
+                    }
+                    className={styles.quickQuestion}
+                  >
+                    È adatto per un bambino di [età]? Come si configura?
+                  </button>
+                  <button
+                    onClick={() =>
+                      handlePrefillQuestion("Ci sono alternative o accessori che consigli?")
+                    }
+                    className={styles.quickQuestion}
+                  >
+                    Ci sono alternative o accessori che consigli?
+                  </button>
                 </div>
-              </div>
-            );
-          })}
-
-          {chatState.isLoading && (
-            <div className={`${styles.messageRow} ${styles.assistantRow}`}>
-              <div className={styles.avatarAssistant}>
-                <Image
-                  src="/logo_nabè.png"
-                  alt="Assistente Nabè"
-                  width={28}
-                  height={28}
-                />
-              </div>
-              <div className={styles.messageBubble}>
-                <LoadingBubble />
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-        
-        {/* 📍 Bottone "Vai alla fine del messaggio" - CENTRATO */}
-        {showScrollToEnd && (
-          <div 
-            className={styles.scrollToEndButton}
-            onClick={() => {
-              scrollToBottom();
-              setShowScrollToEnd(false);
-            }}
-            style={{
-              position: 'absolute',
-              bottom: '90px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'linear-gradient(135deg,#79aea3,#5a9d8f)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '25px',
-              padding: '12px 20px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '14px',
-              fontWeight: '500',
-              zIndex: 1000,
-              transition: 'all 0.3s ease',
-              whiteSpace: 'nowrap'
-            }}
-            title="Vai alla fine del messaggio"
-          >
-            <span>Vai alla fine</span>
-            <span style={{ fontSize: '16px' }}>↓</span>
+              </>
+            ) : (
+              <>
+                <h2>Benvenutə in Nabè</h2>
+                <p>
+                  Sono il tuo consulente specializzato per trovare il letto
+                  perfetto per il tuo bambino. Insieme creeremo il rifugio dei
+                  sogni ideale!
+                </p>
+                <div className={styles.quickQuestions}>
+                  <p className={styles.quickQuestionsTitle}>
+                    Iniziamo con queste domande:
+                  </p>
+                  <button
+                    onClick={() =>
+                      handlePrefillQuestion("Ho un bambino di età compresa tra 0 e 3 anni, che letto mi consigli?")
+                    }
+                    className={styles.quickQuestion}
+                  >
+                    Ho un bambino di età compresa tra 0 e 3 anni, che letto mi consigli?
+                  </button>
+                  <button
+                    onClick={() =>
+                      handlePrefillQuestion("Ho un bambino di età superiore ai 3 anni, che letto mi consigli?")
+                    }
+                    className={styles.quickQuestion}
+                  >
+                    Ho un bambino di età superiore ai 3 anni, che letto mi consigli?
+                  </button>
+                  <button
+                    onClick={() =>
+                      handlePrefillQuestion(
+                        "Ho due bambini, cosa mi consigli di fare?"
+                      )
+                    }
+                    className={styles.quickQuestion}
+                  >
+                    Ho due bambini, cosa mi consigli di fare?
+                  </button>
+                  <button
+                    onClick={() =>
+                      handlePrefillQuestion(
+                        "La cameretta è piccola, che dimensioni mi consigli?"
+                      )
+                    }
+                    className={styles.quickQuestion}
+                  >
+                    La cameretta è piccola, che dimensioni mi consigli?
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
+
+        {messages.map((msg: any, index: number) => {
+          const isAssistant = msg.role === "assistant";
+          const isUser = msg.role === "user";
+          const rowClass = [
+            styles.messageRow,
+            isAssistant ? styles.assistantRow : "",
+            isUser ? styles.userRow : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+          const isLastAssistantMessage =
+            isAssistant &&
+            chatState.hasAssistantResponded &&
+            !chatState.isLoading &&
+            index === messages.length - 1;
+
+          const shouldShowContactForm =
+            isLastAssistantMessage &&
+            !chatState.contactDeclined &&
+            !chatState.showAlternativeOffer;
+          const shouldShowAlternative =
+            isLastAssistantMessage && chatState.showAlternativeOffer;
+
+          return (
+            <div key={index} className={rowClass}>
+              {isAssistant && (
+                <div className={styles.avatarAssistant}>
+                  <Image
+                    src="/logo_nabè.png"
+                    alt="Assistente Nabè"
+                    width={28}
+                    height={28}
+                  />
+                </div>
+              )}
+              {isUser && (
+                <div className={styles.avatarUser} aria-hidden="true">
+                  Tu
+                </div>
+              )}
+              {!isAssistant && !isUser && (
+                <div className={styles.avatarCode} aria-hidden="true">
+                  {"</>"}
+                </div>
+              )}
+              <div className={styles.messageBubble}>
+                <Message
+                  role={msg.role}
+                  text={msg.text}
+                  showContactForm={shouldShowContactForm}
+                  chatHistory={
+                    shouldShowContactForm ? getChatHistory() : undefined
+                  }
+                  onContactDeclined={handleContactDeclined}
+                  showAlternativeOffer={shouldShowAlternative}
+                  products={msg.products}
+                  onAddToCart={handleAddToCart}
+                />
+              </div>
+            </div>
+          );
+        })}
+
+        {chatState.isLoading && (
+          <div className={`${styles.messageRow} ${styles.assistantRow}`}>
+            <div className={styles.avatarAssistant}>
+              <Image
+                src="/logo_nabè.png"
+                alt="Assistente Nabè"
+                width={28}
+                height={28}
+              />
+            </div>
+            <div className={styles.messageBubble}>
+              <LoadingBubble />
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* 🎯 Componente Coda - Mostra posizione quando utente è in coda */}
+      {queueInfo.isInQueue && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 1001,
+          width: '90%',
+          maxWidth: '400px'
+        }}>
+          <QueueStatus 
+            userId={userId}
+            onReady={handleQueueReady}
+          />
+        </div>
+      )}
+      
+      {/* 📍 Bottone "Vai alla fine del messaggio" */}
+      {showScrollToEnd && !queueInfo.isInQueue && (
+        <div 
+          className={styles.scrollToEndButton}
+          onClick={() => {
+            scrollToBottom();
+            setShowScrollToEnd(false);
+          }}
+          style={{
+            position: 'absolute',
+            bottom: '90px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'linear-gradient(135deg,#79aea3,#5a9d8f)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '25px',
+            padding: '12px 20px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '14px',
+            fontWeight: '500',
+            zIndex: 1000,
+            transition: 'all 0.3s ease',
+            whiteSpace: 'nowrap'
+          }}
+          title="Vai alla fine del messaggio"
+        >
+          <span>Vai alla fine</span>
+          <span style={{ fontSize: '16px' }}>↓</span>
+        </div>
+      )}
+      
       <div className={styles.composer}>
-        {/* Icona fluttuante per richiesta preventivo - posizionata relativamente al composer */}
         <FloatingContact 
           chatHistory={getChatHistory()}
           isVisible={chatState.showFloatingContact}
@@ -1041,14 +1075,15 @@ const Chat = ({
                 processUserMessage();
               }
             }}
-            placeholder="Scrivi il tuo messaggio..."
+            placeholder={queueInfo.isInQueue ? "In attesa in coda..." : "Scrivi il tuo messaggio..."}
+            disabled={queueInfo.isInQueue}
           />
           <button
             type="submit"
             className={styles.button}
-            disabled={chatState.inputDisabled}
+            disabled={chatState.inputDisabled || queueInfo.isInQueue}
           >
-            Invia
+            {queueInfo.isInQueue ? 'In coda...' : 'Invia'}
           </button>
         </form>
       </div>
