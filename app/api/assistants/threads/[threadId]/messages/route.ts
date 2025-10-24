@@ -57,7 +57,7 @@ export async function POST(request, { params: { threadId } }) {
 
     const knowledgeContext = buildKnowledgeContext(content);
 
-    const stream = await openaiQueue.enqueue(async () => {
+    const ticket = openaiQueue.enqueue(async () => {
 
       // Crea il messaggio
       await openai.beta.threads.messages.create(threadId, {
@@ -72,7 +72,51 @@ export async function POST(request, { params: { threadId } }) {
       });
     }, userId);
 
-    return new Response(stream.toReadableStream());
+    const queuedAhead = ticket.initialPosition - 1;
+    const immediate =
+      ticket.initialPosition === 1 &&
+      ticket.initialUserPosition === 1 &&
+      !openaiQueue.isOverloaded();
+
+    if (immediate) {
+      const stream = await ticket.promise;
+      return new Response(stream.toReadableStream());
+    }
+
+    // Evita UnhandledPromiseRejection se la richiesta viene abbandonata dal client
+    ticket.promise.catch((error) => {
+      secureLog.warn('Deferred ticket failed', {
+        ticketId: ticket.ticketId,
+        threadId: threadId.substring(0, 10) + '...',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    });
+
+    const retryAfter = Math.min(15, Math.max(3, queuedAhead * 2));
+
+    return new Response(
+      JSON.stringify({
+        status: 'queued',
+        message:
+          queuedAhead > 0
+            ? `Sei in coda. Ci sono ${queuedAhead} richieste davanti a te.`
+            : 'Sei in coda. Verrai servito a breve.',
+        ticketId: ticket.ticketId,
+        position: ticket.initialPosition,
+        queuedAhead,
+        userPosition: ticket.initialUserPosition,
+        retryAfter,
+        statusEndpoint: `/api/assistants/queue/${ticket.ticketId}`,
+        streamEndpoint: `/api/assistants/queue/${ticket.ticketId}/stream`,
+      }),
+      {
+        status: 202,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(retryAfter),
+        },
+      }
+    );
 
   } catch (error) {
     // 🚨 Gestione errori specifici
