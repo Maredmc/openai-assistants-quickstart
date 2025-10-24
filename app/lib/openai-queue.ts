@@ -25,7 +25,12 @@ type QueueItem<T> = {
 export class OpenAIQueueError extends Error {
   constructor(
     message: string,
-    public code: 'QUEUE_FULL' | 'TIMEOUT' | 'PROCESSING_ERROR' | 'STALE_REQUEST'
+    public code:
+      | 'QUEUE_FULL'
+      | 'TIMEOUT'
+      | 'PROCESSING_ERROR'
+      | 'STALE_REQUEST'
+      | 'USER_QUEUE_LIMIT'
   ) {
     super(message);
     this.name = 'OpenAIQueueError';
@@ -36,10 +41,14 @@ class OpenAIQueue {
   private queue: QueueItem<any>[] = [];
   private processing = 0;
   private cleanupInterval: NodeJS.Timeout | null = null;
+  private inFlightByUser = new Map<string, number>();
+  private queuedByUser = new Map<string, number>();
 
   // Configurazione per 200+ utenti simultanei
   private readonly MAX_CONCURRENT = 20; // Max richieste simultanee a OpenAI
   private readonly MAX_QUEUE_SIZE = 100; // Max richieste in attesa
+  private readonly MAX_CONCURRENT_PER_USER = 1; // Limite richieste simultanee per utente
+  private readonly MAX_QUEUE_PER_USER = 3; // Limite richieste totali (coda+attive) per utente
   private readonly REQUEST_TIMEOUT = 15000; // 15 secondi timeout
   private readonly STALE_REQUEST_THRESHOLD = 30000; // 30 secondi = richiesta obsoleta
   private readonly CLEANUP_INTERVAL = 10000; // Cleanup ogni 10 secondi
@@ -79,6 +88,7 @@ class OpenAIQueue {
       if (age > this.STALE_REQUEST_THRESHOLD) {
         // Rimuovi timeout e rigetta la richiesta
         clearTimeout(item.timeoutId);
+        this.decrementQueued(item.userId);
 
         secureLog.warn('Removing stale request from queue', {
           userId: item.userId,
@@ -119,6 +129,7 @@ class OpenAIQueue {
     this.queue = this.queue.filter((item) => {
       if (item.userId === userId) {
         clearTimeout(item.timeoutId);
+        this.decrementQueued(item.userId);
 
         secureLog.info('Removing user from queue', {
           userId,
@@ -170,6 +181,25 @@ class OpenAIQueue {
     }
 
     return new Promise<T>((resolve, reject) => {
+      const activeForUser = this.inFlightByUser.get(userId) ?? 0;
+      const queuedForUser = this.queuedByUser.get(userId) ?? 0;
+
+      if (activeForUser + queuedForUser >= this.MAX_QUEUE_PER_USER) {
+        secureLog.warn('User queue limit reached', {
+          userId,
+          activeForUser,
+          queuedForUser,
+        });
+
+        reject(
+          new OpenAIQueueError(
+            'Troppi messaggi in parallelo per questo utente. Attendi qualche secondo.',
+            'USER_QUEUE_LIMIT'
+          )
+        );
+        return;
+      }
+
       const createdAt = Date.now();
 
       // ⏱️ Timeout automatico dopo 15 secondi
@@ -177,7 +207,8 @@ class OpenAIQueue {
         // Rimuovi dalla coda se ancora presente
         const index = this.queue.findIndex((item) => item.timeoutId === timeoutId);
         if (index !== -1) {
-          this.queue.splice(index, 1);
+          const [timedOut] = this.queue.splice(index, 1);
+          this.decrementQueued(timedOut.userId);
         }
 
         secureLog.warn('Request timeout', {
@@ -203,6 +234,7 @@ class OpenAIQueue {
         userId,
         createdAt,
       });
+      this.incrementQueued(userId);
 
       secureLog.debug('Request enqueued', {
         userId,
@@ -222,13 +254,25 @@ class OpenAIQueue {
       return;
     }
 
-    this.processing++;
-    const item = this.queue.shift();
+    const nextIndex = this.queue.findIndex((item) => {
+      const activeForUser = this.inFlightByUser.get(item.userId) ?? 0;
+      return activeForUser < this.MAX_CONCURRENT_PER_USER;
+    });
 
-    if (!item) {
-      this.processing--;
+    if (nextIndex === -1) {
+      // Tutti gli utenti in coda hanno già raggiunto il limite per-user
       return;
     }
+
+    const [item] = this.queue.splice(nextIndex, 1);
+
+    if (!item) {
+      return;
+    }
+
+    this.processing++;
+    this.decrementQueued(item.userId);
+    this.incrementInFlight(item.userId);
 
     try {
       // Cancella il timeout (la richiesta è in processing)
@@ -258,6 +302,7 @@ class OpenAIQueue {
       );
     } finally {
       this.processing--;
+      this.decrementInFlight(item.userId);
       this.processQueue(); // Processa prossimo item
     }
   }
@@ -291,6 +336,38 @@ class OpenAIQueue {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
       secureLog.info('Queue cleanup stopped');
+    }
+  }
+
+  private incrementQueued(userId: string) {
+    this.queuedByUser.set(userId, (this.queuedByUser.get(userId) ?? 0) + 1);
+  }
+
+  private decrementQueued(userId: string) {
+    const current = this.queuedByUser.get(userId);
+    if (current === undefined) {
+      return;
+    }
+    if (current <= 1) {
+      this.queuedByUser.delete(userId);
+    } else {
+      this.queuedByUser.set(userId, current - 1);
+    }
+  }
+
+  private incrementInFlight(userId: string) {
+    this.inFlightByUser.set(userId, (this.inFlightByUser.get(userId) ?? 0) + 1);
+  }
+
+  private decrementInFlight(userId: string) {
+    const current = this.inFlightByUser.get(userId);
+    if (current === undefined) {
+      return;
+    }
+    if (current <= 1) {
+      this.inFlightByUser.delete(userId);
+    } else {
+      this.inFlightByUser.set(userId, current - 1);
     }
   }
 }

@@ -32,8 +32,32 @@ export async function POST(request, { params: { threadId } }) {
     }
 
     // 🚦 Usa la coda per gestire il carico
+    if (openaiQueue.isOverloaded()) {
+      secureLog.warn('Queue overload guard triggered', {
+        code: 'QUEUE_FULL',
+        threadId: threadId.substring(0, 10) + '...'
+      });
+
+      const retryAfter = 10;
+      return new Response(
+        JSON.stringify({
+          error: 'Sistema sovraccarico. Riprova tra qualche secondo.',
+          code: 'QUEUE_FULL',
+          retryAfter,
+        }),
+        {
+          status: 503,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": String(retryAfter),
+          },
+        }
+      );
+    }
+
+    const knowledgeContext = buildKnowledgeContext(content);
+
     const stream = await openaiQueue.enqueue(async () => {
-      const knowledgeContext = buildKnowledgeContext(content);
 
       // Crea il messaggio
       await openai.beta.threads.messages.create(threadId, {
@@ -59,17 +83,30 @@ export async function POST(request, { params: { threadId } }) {
       });
 
       // Errore sovraccarico o timeout
+      const status =
+        error.code === 'QUEUE_FULL'
+          ? 503
+          : error.code === 'USER_QUEUE_LIMIT'
+            ? 429
+            : 408;
+      const retryAfter =
+        error.code === 'QUEUE_FULL'
+          ? 10
+          : error.code === 'USER_QUEUE_LIMIT'
+            ? 3
+            : 5;
+
       return new Response(
         JSON.stringify({
           error: error.message,
           code: error.code,
-          retryAfter: error.code === 'QUEUE_FULL' ? 10 : 5, // Suggerisci quando riprovare (secondi)
+          retryAfter, // Suggerisci quando riprovare (secondi)
         }),
         {
-          status: error.code === 'QUEUE_FULL' ? 503 : 408,
+          status,
           headers: {
             "Content-Type": "application/json",
-            "Retry-After": error.code === 'QUEUE_FULL' ? "10" : "5"
+            "Retry-After": String(retryAfter)
           }
         }
       );
