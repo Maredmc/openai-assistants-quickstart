@@ -11,6 +11,7 @@ import { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/ru
 import ContactForm from "./contact-form";
 import ProductCard from "./product-card";
 import FloatingContact from "./floating-contact";
+import QueueStatus from "./queue-status";
 import { addToCart, getCart, getCartItemCount } from "../lib/cart";
 import { trackAddToCart, trackProductView } from "../lib/shopify-analytics";
 import { performanceMonitor } from "../utils/performance-monitor";
@@ -219,6 +220,23 @@ const Chat = ({
   const [cartCount, setCartCount] = useState(0);
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
   const [showScrollToEnd, setShowScrollToEnd] = useState(false);
+  
+  // 🎯 Stati per sistema di coda
+  const [userId] = useState(() => {
+    // Genera userId persistente per sessione
+    if (typeof window !== 'undefined') {
+      let id = sessionStorage.getItem('chatUserId');
+      if (!id) {
+        id = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        sessionStorage.setItem('chatUserId', id);
+      }
+      return id;
+    }
+    return `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  });
+  const [isInQueue, setIsInQueue] = useState(false);
+  const [queueError, setQueueError] = useState<string | null>(null);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
 
   // Inizializza cart count
   useEffect(() => {
@@ -360,17 +378,19 @@ const Chat = ({
     );
 
     try {
+      // 🎯 Includi userId per tracking coda
       const response = await fetch(
         `/api/assistants/threads/${threadId}/messages`,
         {
           method: "POST",
           body: JSON.stringify({
             content: text,
+            userId: userId, // Per tracking posizione in coda
           }),
         }
       );
 
-      // 🚨 Gestione errori specifici (sovraccarico, timeout)
+      // 🚨 Gestione errori specifici (sovraccarico, timeout, rate limit)
       if (!response.ok) {
         let errorMessage = "Mi dispiace, ho avuto un problema tecnico. Prova di nuovo tra qualche istante.";
         let retryAfter = 5;
@@ -379,9 +399,29 @@ const Chat = ({
           const errorData = await response.json();
 
           if (response.status === 503 || errorData.code === 'QUEUE_FULL' || errorData.code === 'SYSTEM_OVERLOADED') {
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
             // Sistema sovraccarico
             errorMessage = `⚠️ Il sistema è momentaneamente sovraccarico. Ti preghiamo di riprovare tra ${errorData.retryAfter || 10} secondi.`;
             retryAfter = errorData.retryAfter || 10;
+          } else if (response.status === 429 || errorData.code === 'RATE_LIMIT') {
+            // Rate limit OpenAI raggiunto
+            errorMessage = `🔄 Stiamo ricevendo molte richieste. Riprova tra ${errorData.retryAfter || 30} secondi.`;
+            retryAfter = errorData.retryAfter || 30;
+=======
+=======
+>>>>>>> Stashed changes
+            // 🚫 Sistema sovraccarico - Mostra componente coda
+            console.log('🚦 Sistema sovraccarico - Attivazione coda visuale');
+            setPendingMessage(text); // Salva messaggio per reinvio automatico
+            setIsInQueue(true);
+            setQueueError(null);
+            setChatState(prev => ({ ...prev, inputDisabled: true, isLoading: false }));
+            return; // Non lanciare errore, mostra solo la coda
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
           } else if (response.status === 408 || errorData.code === 'TIMEOUT') {
             // Timeout
             errorMessage = "⏱️ La richiesta ha impiegato troppo tempo. Il sistema è sotto carico, riprova tra qualche secondo.";
@@ -471,6 +511,27 @@ const Chat = ({
     const stream = AssistantStream.fromReadableStream(response.body);
     handleReadableStream(stream);
   };
+
+  // 🎯 Callback quando l'utente esce dalla coda
+  const handleQueueReady = useCallback(() => {
+    console.log('✅ Utente uscito dalla coda');
+    setIsInQueue(false);
+    setQueueError(null);
+  }, []);
+
+  // 🔄 Effect per reinvio automatico quando utente esce dalla coda
+  useEffect(() => {
+    if (!isInQueue && pendingMessage) {
+      console.log('🔄 Reinvio automatico messaggio:', pendingMessage);
+      const messageToSend = pendingMessage;
+      setPendingMessage(null);
+      
+      // Piccolo delay per assicurarsi che lo stato sia aggiornato
+      setTimeout(() => {
+        sendMessage(messageToSend);
+      }, 100);
+    }
+  }, [isInQueue, pendingMessage]);
 
   const processUserMessage = () => {
     const outboundText = userInput.trim();
@@ -783,6 +844,19 @@ const Chat = ({
 
   return (
     <div className={styles.chatContainer} style={{ position: 'relative' }}>
+      {/* 🌑 Overlay scuro quando coda è attiva */}
+      {isInQueue && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 1000,
+          backdropFilter: 'blur(3px)'
+        }} />
+      )}
       <div className={styles.chatHeader}>
         <div className={styles.chatHeaderContent}>
           <div className={styles.chatHeaderIdentity}>
@@ -983,9 +1057,27 @@ const Chat = ({
 
           <div ref={messagesEndRef} />
         </div>
+
+        {/* 🎯 Componente Coda - Mostra posizione quando utente è in coda */}
+        {isInQueue && (
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1001,
+            width: '90%',
+            maxWidth: '400px'
+          }}>
+            <QueueStatus 
+              userId={userId}
+              onReady={handleQueueReady}
+            />
+          </div>
+        )}
         
         {/* 📍 Bottone "Vai alla fine del messaggio" - CENTRATO */}
-        {showScrollToEnd && (
+        {showScrollToEnd && !isInQueue && (
           <div 
             className={styles.scrollToEndButton}
             onClick={() => {
@@ -1041,14 +1133,15 @@ const Chat = ({
                 processUserMessage();
               }
             }}
-            placeholder="Scrivi il tuo messaggio..."
+            placeholder={isInQueue ? "In attesa in coda..." : "Scrivi il tuo messaggio..."}
+            disabled={isInQueue}
           />
           <button
             type="submit"
             className={styles.button}
-            disabled={chatState.inputDisabled}
+            disabled={chatState.inputDisabled || isInQueue}
           >
-            Invia
+            {isInQueue ? 'In coda...' : 'Invia'}
           </button>
         </form>
       </div>
