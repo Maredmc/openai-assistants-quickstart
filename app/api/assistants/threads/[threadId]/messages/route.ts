@@ -10,7 +10,12 @@ export const maxDuration = 15; // ⏱️ Timeout 15 secondi (max per richiesta)
 // Send a new message to a thread
 export async function POST(request, { params: { threadId } }) {
   try {
-    const { content } = await request.json();
+    const body = await request.json();
+    const content = typeof body?.content === 'string' ? body.content : '';
+    const userId =
+      typeof body?.userId === 'string' && body.userId.trim().length > 0
+        ? body.userId
+        : 'anonymous';
 
     // Validazione input
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
@@ -41,7 +46,7 @@ export async function POST(request, { params: { threadId } }) {
         assistant_id: assistantId,
         additional_instructions: knowledgeContext,
       });
-    });
+    }, userId);
 
     return new Response(stream.toReadableStream());
 
