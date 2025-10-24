@@ -207,7 +207,7 @@ export default function ContactForm({ chatHistory, onContactDeclined, showAltern
               disabled={isSubmitting}
             />
             <label htmlFor="privacy" className={styles["consent-label"]}>
-              Accetto la <a href="https://nabecreation.com/policies/privacy-policy" className={styles["privacy-link"]}>Privacy Policy</a> *
+              Accetto la <a href="https://nabecreation.com/policies/privacy-policy" target="_blank" className={styles["privacy-link"]}>Privacy Policy</a> *
             </label>
           </div>
 
