@@ -1,16 +1,17 @@
 import { assistantId } from "@/app/assistant-config";
 import { openai } from "@/app/openai";
 import { buildKnowledgeContext } from "@/app/utils/knowledge-context";
-import { openaiQueue, OpenAIQueueError } from "@/app/lib/openai-queue";
+import { smartQueue, QueueError } from "@/app/lib/smart-queue-manager";
 import { secureLog } from "@/app/lib/secure-logger";
 
 export const runtime = "nodejs";
-export const maxDuration = 15; // ⏱️ Timeout 15 secondi (max per richiesta)
+export const maxDuration = 30; // ⏱️ Timeout 30 secondi (aumentato per Tier 1)
 
 // Send a new message to a thread
 export async function POST(request, { params: { threadId } }) {
   try {
-    const { content } = await request.json();
+    const body = await request.json();
+    const { content, userId } = body;
 
     // Validazione input
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
@@ -26,8 +27,11 @@ export async function POST(request, { params: { threadId } }) {
       );
     }
 
-    // 🚦 Usa la coda per gestire il carico
-    const stream = await openaiQueue.enqueue(async () => {
+    // Genera userId se non fornito (per tracking coda)
+    const userIdentifier = userId || `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // 🚦 Usa la smart queue con tracking utente
+    const stream = await smartQueue.enqueue(async () => {
       const knowledgeContext = buildKnowledgeContext(content);
 
       // Crea il messaggio
@@ -41,18 +45,20 @@ export async function POST(request, { params: { threadId } }) {
         assistant_id: assistantId,
         additional_instructions: knowledgeContext,
       });
-    });
+    }, userIdentifier);
 
     return new Response(stream.toReadableStream());
 
   } catch (error) {
-    // 🚨 Gestione errori specifici
-    if (error instanceof OpenAIQueueError) {
-      secureLog.warn('Queue error', {
+    // 🚨 Gestione errori specifici da Smart Queue
+    if (error instanceof QueueError) {
+      secureLog.warn('Smart Queue error', {
         code: error.code,
-        threadId: threadId.substring(0, 10) + '...'
+        threadId: threadId.substring(0, 10) + '...',
+        retryAfter: error.retryAfter
       });
 
+<<<<<<< Updated upstream
       // Mappa errori a status code e retry time appropriati
       let statusCode: number;
       let retryAfter: number;
@@ -74,11 +80,21 @@ export async function POST(request, { params: { threadId } }) {
           statusCode = 500;
           retryAfter = 5;
       }
+=======
+      // Mappa codici errore a status HTTP
+      const statusMap = {
+        'QUEUE_FULL': 503,      // Service Unavailable
+        'TIMEOUT': 408,          // Request Timeout
+        'RATE_LIMIT': 429,       // Too Many Requests
+        'PROCESSING_ERROR': 500  // Internal Server Error
+      };
+>>>>>>> Stashed changes
 
       return new Response(
         JSON.stringify({
           error: error.message,
           code: error.code,
+<<<<<<< Updated upstream
           retryAfter,
         }),
         {
@@ -86,6 +102,15 @@ export async function POST(request, { params: { threadId } }) {
           headers: {
             "Content-Type": "application/json",
             "Retry-After": String(retryAfter)
+=======
+          retryAfter: error.retryAfter || 10,
+        }),
+        {
+          status: statusMap[error.code] || 500,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": String(error.retryAfter || 10)
+>>>>>>> Stashed changes
           }
         }
       );
