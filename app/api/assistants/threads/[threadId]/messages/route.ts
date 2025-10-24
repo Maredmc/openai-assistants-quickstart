@@ -59,6 +59,7 @@ export async function POST(request, { params: { threadId } }) {
       });
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       // Mappa errori a status code e retry time appropriati
       let statusCode: number;
       let retryAfter: number;
@@ -81,6 +82,8 @@ export async function POST(request, { params: { threadId } }) {
           retryAfter = 5;
       }
 =======
+=======
+>>>>>>> Stashed changes
       // Mappa codici errore a status HTTP
       const statusMap = {
         'QUEUE_FULL': 503,      // Service Unavailable
@@ -88,12 +91,16 @@ export async function POST(request, { params: { threadId } }) {
         'RATE_LIMIT': 429,       // Too Many Requests
         'PROCESSING_ERROR': 500  // Internal Server Error
       };
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
       return new Response(
         JSON.stringify({
           error: error.message,
           code: error.code,
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
           retryAfter,
         }),
@@ -102,6 +109,15 @@ export async function POST(request, { params: { threadId } }) {
           headers: {
             "Content-Type": "application/json",
             "Retry-After": String(retryAfter)
+=======
+          retryAfter: error.retryAfter || 10,
+        }),
+        {
+          status: statusMap[error.code] || 500,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": String(error.retryAfter || 10)
+>>>>>>> Stashed changes
 =======
           retryAfter: error.retryAfter || 10,
         }),

@@ -400,6 +400,7 @@ const Chat = ({
 
           if (response.status === 503 || errorData.code === 'QUEUE_FULL' || errorData.code === 'SYSTEM_OVERLOADED') {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             // Sistema sovraccarico
             errorMessage = `⚠️ Il sistema è momentaneamente sovraccarico. Ti preghiamo di riprovare tra ${errorData.retryAfter || 10} secondi.`;
             retryAfter = errorData.retryAfter || 10;
@@ -408,6 +409,8 @@ const Chat = ({
             errorMessage = `🔄 Stiamo ricevendo molte richieste. Riprova tra ${errorData.retryAfter || 30} secondi.`;
             retryAfter = errorData.retryAfter || 30;
 =======
+=======
+>>>>>>> Stashed changes
             // 🚫 Sistema sovraccarico - Mostra componente coda
             console.log('🚦 Sistema sovraccarico - Attivazione coda visuale');
             setPendingMessage(text); // Salva messaggio per reinvio automatico
@@ -415,6 +418,9 @@ const Chat = ({
             setQueueError(null);
             setChatState(prev => ({ ...prev, inputDisabled: true, isLoading: false }));
             return; // Non lanciare errore, mostra solo la coda
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
           } else if (response.status === 408 || errorData.code === 'TIMEOUT') {
             // Timeout
