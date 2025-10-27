@@ -272,6 +272,13 @@ const Chat = ({
   const [cartCount, setCartCount] = useState(0);
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
   const [showScrollToEnd, setShowScrollToEnd] = useState(false);
+  const [lastActivityTime, setLastActivityTime] = useState<number>(Date.now());
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false);
+  const [inactivityCountdown, setInactivityCountdown] = useState(60);
+  
+  // ⏰ Configurazione timeout inattività
+  const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minuti
+  const WARNING_BEFORE_TIMEOUT = 1 * 60 * 1000; // Avviso 1 minuto prima
   
   // 🎯 Stati per sistema di coda - AGGIUNTI
   const [userId] = useState(() => {
@@ -341,15 +348,64 @@ const Chat = ({
     }
   }, [messages, scrollToBottom]);
 
+  // 🆕 Crea nuovo thread
+  const createNewThread = useCallback(async () => {
+    const res = await fetch(`/api/assistants/threads`, {
+      method: "POST",
+    });
+    const data = await res.json();
+    setThreadId(data.threadId);
+    setLastActivityTime(Date.now());
+    console.log('🆕 Nuovo thread creato:', data.threadId);
+  }, []);
+
+  // 🔄 Inizializza thread al mount
   useEffect(() => {
-    const createThread = async () => {
-      const res = await fetch(`/api/assistants/threads`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      setThreadId(data.threadId);
-    };
-    createThread();
+    createNewThread();
+  }, [createNewThread]);
+
+  // ⏰ Monitor inattività - Reset dopo 5 minuti
+  useEffect(() => {
+    const checkInactivity = setInterval(() => {
+      const inactiveTime = Date.now() - lastActivityTime;
+      const timeUntilTimeout = INACTIVITY_TIMEOUT - inactiveTime;
+      
+      // Mostra warning 1 minuto prima del timeout
+      if (timeUntilTimeout <= WARNING_BEFORE_TIMEOUT && timeUntilTimeout > 0 && messages.length > 0) {
+        setShowInactivityWarning(true);
+        setInactivityCountdown(Math.ceil(timeUntilTimeout / 1000));
+      } else {
+        setShowInactivityWarning(false);
+      }
+      
+      if (inactiveTime > INACTIVITY_TIMEOUT && messages.length > 0) {
+        console.log('⏰ Timeout inattività raggiunto - Reset conversazione');
+        
+        // Reset completo dello stato
+        setMessages([]);
+        setChatState({
+          inputDisabled: false,
+          isLoading: false,
+          hasAssistantResponded: false,
+          contactDeclined: false,
+          showAlternativeOffer: false,
+          showFloatingContact: false
+        });
+        setUserInput("");
+        setQueueInfo(INITIAL_QUEUE_STATE);
+        setShowInactivityWarning(false);
+        
+        // Crea nuovo thread
+        createNewThread();
+      }
+    }, 1000); // Check ogni secondo per countdown preciso
+
+    return () => clearInterval(checkInactivity);
+  }, [lastActivityTime, messages.length, createNewThread, INACTIVITY_TIMEOUT, WARNING_BEFORE_TIMEOUT]);
+
+  // 📝 Aggiorna lastActivityTime ad ogni interazione utente
+  const updateActivity = useCallback(() => {
+    setLastActivityTime(Date.now());
   }, []);
 
   /**
@@ -396,11 +452,12 @@ const Chat = ({
 
   const handlePrefillQuestion = useCallback((text: string) => {
     setUserInput(text);
+    updateActivity();
     requestAnimationFrame(() => {
       adjustInputHeight();
       inputRef.current?.focus();
     });
-  }, [adjustInputHeight]);
+  }, [adjustInputHeight, updateActivity]);
 
   useEffect(() => {
     adjustInputHeight();
@@ -650,6 +707,9 @@ const Chat = ({
       console.warn("Thread non pronto, attendi qualche istante prima di inviare.");
       return;
     }
+    
+    // 📝 Aggiorna attività utente
+    updateActivity();
 
     const refusalKeywords = ['no grazie', 'non voglio', 'non interessato', 'no thanks', 'non ora', 'magari dopo', 'non mi interessa', 'non ho bisogno', 'preferirei di no', 'non adesso'];
     const contactKeywords = ['contatto', 'contattare', 'preventivo', 'modulo', 'email', 'telefono', 'ricontattare', 'chiamare'];
