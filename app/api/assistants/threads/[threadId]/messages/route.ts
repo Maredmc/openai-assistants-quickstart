@@ -3,6 +3,8 @@ import { openai } from "@/app/openai";
 import { buildKnowledgeContext } from "@/app/utils/knowledge-context";
 import { openaiQueue, OpenAIQueueError } from "@/app/lib/openai-queue";
 import { secureLog } from "@/app/lib/secure-logger";
+import { intelligentCache } from "@/app/lib/intelligent-cache";
+import { priorityQueueManager } from "@/app/lib/priority-queue-manager";
 
 export const runtime = "nodejs";
 export const maxDuration = 15; // ⏱️ Timeout 15 secondi (max per richiesta)
@@ -31,11 +33,91 @@ export async function POST(request, { params: { threadId } }) {
       );
     }
 
-    // 🚦 Usa la coda per gestire il carico
+    // 🚀 STEP 1: Controlla CACHE (70% risparmi!)
+    if (intelligentCache.isCacheable(content)) {
+      const cached = await intelligentCache.get(content, userId);
+      
+      if (cached) {
+        secureLog.info('Cache hit - Risposta immediata', {
+          userId,
+          question: content.substring(0, 50),
+          hits: cached.hits,
+        });
+
+        // Crea un ReadableStream dalla risposta cached
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+          start(controller) {
+            // Simula formato Assistant API
+            controller.enqueue(encoder.encode(`event: thread.message.delta\ndata: ${JSON.stringify({
+              delta: { content: [{ type: 'text', text: { value: cached.response } }] }
+            })}\n\n`));
+            
+            controller.enqueue(encoder.encode(`event: thread.run.completed\ndata: {}\n\n`));
+            controller.close();
+          }
+        });
+
+        return new Response(stream, {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'X-Cache-Hit': 'true',
+          },
+        });
+      }
+    }
+
+    // 🎯 STEP 2: Controlla PRIORITY (utenti con email)
+    const hasPriority = priorityQueueManager.hasPriority(userId);
+    
+    if (hasPriority) {
+      secureLog.info('Priority user - Bypass queue', {
+        userId,
+      });
+      
+      priorityQueueManager.recordPriorityRequest(userId);
+      
+      // Utente priority: esegui immediatamente senza coda
+      const knowledgeContext = buildKnowledgeContext(content);
+      
+      try {
+        await openai.beta.threads.messages.create(threadId, {
+          role: "user",
+          content: content,
+        });
+
+        const stream = await openai.beta.threads.runs.stream(threadId, {
+          assistant_id: assistantId,
+          additional_instructions: knowledgeContext,
+        });
+
+        // Salva in cache per future richieste
+        scheduleResponseCaching(content, userId, stream);
+
+        return new Response(stream.toReadableStream(), {
+          headers: {
+            'X-Priority-User': 'true',
+          },
+        });
+      } catch (error) {
+        secureLog.error('Priority request failed', {
+          userId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        
+        // Anche utenti priority possono avere errori, continua con coda normale
+      }
+    } else {
+      priorityQueueManager.recordStandardRequest();
+    }
+
+    // 🚦 STEP 3: Sistema CODA normale
     if (openaiQueue.isOverloaded()) {
       secureLog.warn('Queue overload guard triggered', {
         code: 'QUEUE_FULL',
-        threadId: threadId.substring(0, 10) + '...'
+        threadId: threadId.substring(0, 10) + '...',
+        hasPriority,
       });
 
       const retryAfter = 10;
@@ -44,6 +126,9 @@ export async function POST(request, { params: { threadId } }) {
           error: 'Sistema sovraccarico. Riprova tra qualche secondo.',
           code: 'QUEUE_FULL',
           retryAfter,
+          suggestion: hasPriority 
+            ? 'Come utente priority, dovresti avere accesso immediato. Riprova.'
+            : 'Vuoi accesso prioritario senza attesa? Registrati con la tua email!',
         }),
         {
           status: 503,
@@ -58,7 +143,6 @@ export async function POST(request, { params: { threadId } }) {
     const knowledgeContext = buildKnowledgeContext(content);
 
     const ticket = openaiQueue.enqueue(async () => {
-
       // Crea il messaggio
       await openai.beta.threads.messages.create(threadId, {
         role: "user",
@@ -66,10 +150,15 @@ export async function POST(request, { params: { threadId } }) {
       });
 
       // Avvia lo streaming della risposta
-      return openai.beta.threads.runs.stream(threadId, {
+      const stream = await openai.beta.threads.runs.stream(threadId, {
         assistant_id: assistantId,
         additional_instructions: knowledgeContext,
       });
+
+      // Salva in cache per future richieste
+      scheduleResponseCaching(content, userId, stream);
+
+      return stream;
     }, userId);
 
     const queuedAhead = ticket.initialPosition - 1;
@@ -108,6 +197,9 @@ export async function POST(request, { params: { threadId } }) {
         retryAfter,
         statusEndpoint: `/api/assistants/queue/${ticket.ticketId}`,
         streamEndpoint: `/api/assistants/queue/${ticket.ticketId}/stream`,
+        prioritySuggestion: !hasPriority 
+          ? 'Vuoi saltare la coda? Registrati con email per accesso prioritario!'
+          : null,
       }),
       {
         status: 202,
@@ -144,7 +236,7 @@ export async function POST(request, { params: { threadId } }) {
         JSON.stringify({
           error: error.message,
           code: error.code,
-          retryAfter, // Suggerisci quando riprovare (secondi)
+          retryAfter,
         }),
         {
           status,
@@ -172,5 +264,53 @@ export async function POST(request, { params: { threadId } }) {
         headers: { "Content-Type": "application/json" }
       }
     );
+  }
+}
+
+/**
+ * 💾 Schedula caching della risposta
+ * (eseguito in background, non blocca la risposta)
+ */
+async function scheduleResponseCaching(
+  question: string,
+  userId: string,
+  stream: any
+): Promise<void> {
+  // Questa funzione ascolta lo stream e salva la risposta completa in cache
+  // È eseguita in background e non blocca la risposta all'utente
+  
+  try {
+    let fullResponse = '';
+    
+    // Copia lo stream per poterlo leggere
+    const reader = stream.toReadableStream().getReader();
+    
+    // Leggi tutti i chunk
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const text = new TextDecoder().decode(value);
+      fullResponse += text;
+    }
+    
+    // Estrai il testo dalla risposta (parsing SSE format)
+    const textMatch = fullResponse.match(/"text":\s*\{\s*"value":\s*"([^"]+)"/);
+    if (textMatch && textMatch[1]) {
+      const responseText = textMatch[1];
+      
+      // Salva in cache
+      await intelligentCache.set(question, responseText, undefined, userId);
+      
+      secureLog.debug('Response cached', {
+        question: question.substring(0, 50),
+        userId,
+      });
+    }
+  } catch (error) {
+    // Non bloccare se caching fallisce
+    secureLog.warn('Failed to cache response', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 }
