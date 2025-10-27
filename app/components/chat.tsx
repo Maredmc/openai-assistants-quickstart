@@ -354,10 +354,8 @@ const Chat = ({
 
   // 🎯 Check priority status on mount
   useEffect(() => {
-    if (userId) {
-      checkPriorityStatus();
-    }
-  }, [userId]);
+    void checkPriorityStatus();
+  }, [checkPriorityStatus]);
 
   const adjustInputHeight = useCallback(() => {
     const el = inputRef.current;
@@ -964,7 +962,7 @@ const Chat = ({
    */
   const handlePrioritySuccess = () => {
     setShowPriorityModal(false);
-    checkPriorityStatus();
+    void checkPriorityStatus();
     
     // Riprova messaggio pendente se presente
     if (queueInfo.pendingMessage) {
@@ -979,7 +977,10 @@ const Chat = ({
   /**
    * 📊 Controlla status priority utente
    */
-  const checkPriorityStatus = async () => {
+  const checkPriorityStatus = useCallback(async () => {
+    if (!userId) {
+      return;
+    }
     try {
       const response = await fetch('/api/priority', {
         method: 'POST',
@@ -998,7 +999,7 @@ const Chat = ({
     } catch (err) {
       console.error('Failed to check priority status:', err);
     }
-  };
+  }, [userId]);
 
   const annotateLastMessage = (annotations: any) => {
     setMessages((prevMessages: any) => {

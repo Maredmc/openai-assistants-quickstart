@@ -69,12 +69,15 @@ class PriorityQueueManager {
     success: boolean;
     message: string;
     alreadyRegistered?: boolean;
+    requiresVerification?: boolean;
+    error?: string;
   }> {
     // Valida email
     if (!this.isValidEmail(email)) {
       return {
         success: false,
         message: 'Email non valida',
+        error: 'Email non valida',
       };
     }
 
@@ -88,6 +91,7 @@ class PriorityQueueManager {
           success: true,
           message: 'Email già registrata! Hai già accesso prioritario.',
           alreadyRegistered: true,
+          requiresVerification: false,
         };
       }
     }
@@ -125,6 +129,7 @@ class PriorityQueueManager {
         return {
           success: true,
           message: 'Ti abbiamo inviato un\'email di verifica! Controlla la tua casella.',
+          requiresVerification: true,
         };
       } catch (error) {
         secureLog.error('Failed to send verification email', {
@@ -134,20 +139,29 @@ class PriorityQueueManager {
         
         // Anche se email fallisce, registra comunque l'utente
         // (potrebbe essere un problema temporaneo)
+        priorityUser.verified = true;
+        delete priorityUser.verificationCode;
+        this.priorityUsers.set(userId, priorityUser);
+        this.savePriorityUsers();
+
         return {
           success: true,
           message: 'Registrazione completata! Accesso prioritario attivato.',
+          requiresVerification: false,
         };
       }
     }
 
     // Se Resend non configurato, attiva direttamente
     priorityUser.verified = true;
+    delete priorityUser.verificationCode;
+    this.priorityUsers.set(userId, priorityUser);
     this.savePriorityUsers();
 
     return {
       success: true,
       message: 'Accesso prioritario attivato! 🎉',
+      requiresVerification: false,
     };
   }
 

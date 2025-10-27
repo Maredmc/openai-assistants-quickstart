@@ -271,46 +271,103 @@ export async function POST(request, { params: { threadId } }) {
  * 💾 Schedula caching della risposta
  * (eseguito in background, non blocca la risposta)
  */
-async function scheduleResponseCaching(
+function scheduleResponseCaching(
   question: string,
   userId: string,
   stream: any
-): Promise<void> {
-  // Questa funzione ascolta lo stream e salva la risposta completa in cache
-  // È eseguita in background e non blocca la risposta all'utente
-  
-  try {
-    let fullResponse = '';
-    
-    // Copia lo stream per poterlo leggere
-    const reader = stream.toReadableStream().getReader();
-    
-    // Leggi tutti i chunk
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      
-      const text = new TextDecoder().decode(value);
-      fullResponse += text;
+): void {
+  const chunks: string[] = [];
+  let completed = false;
+
+  const collectDelta = (delta: any) => {
+    try {
+      const value =
+        typeof delta?.value === 'string'
+          ? delta.value
+          : typeof delta === 'string'
+            ? delta
+            : null;
+      if (value) {
+        chunks.push(value);
+      }
+    } catch {
+      // Ignora eventuali errori di parsing del delta
     }
-    
-    // Estrai il testo dalla risposta (parsing SSE format)
-    const textMatch = fullResponse.match(/"text":\s*\{\s*"value":\s*"([^"]+)"/);
-    if (textMatch && textMatch[1]) {
-      const responseText = textMatch[1];
-      
-      // Salva in cache
+  };
+
+  const removeListeners = () => {
+    if (typeof stream?.off === 'function') {
+      stream.off('textDelta', collectDelta);
+      stream.off('textCreated', handleTextCreated);
+      stream.off('event', handleStreamEvent);
+      stream.off('error', handleStreamError);
+      stream.off('abort', handleStreamError);
+    }
+  };
+
+  const finalise = async () => {
+    if (completed) {
+      return;
+    }
+    completed = true;
+
+    removeListeners();
+
+    const responseText = chunks.join('').trim();
+    if (!responseText) {
+      return;
+    }
+
+    try {
       await intelligentCache.set(question, responseText, undefined, userId);
-      
       secureLog.debug('Response cached', {
         question: question.substring(0, 50),
         userId,
       });
+    } catch (error) {
+      secureLog.warn('Failed to cache response', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
-  } catch (error) {
-    // Non bloccare se caching fallisce
-    secureLog.warn('Failed to cache response', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+  };
+
+  const handleStreamEvent = (event: any) => {
+    const eventName = event?.event;
+    if (eventName === 'thread.run.completed') {
+      void finalise();
+    }
+    if (eventName === 'thread.run.failed' || eventName === 'thread.run.cancelled') {
+      completed = true;
+      removeListeners();
+    }
+  };
+
+  const handleStreamError = () => {
+    completed = true;
+    removeListeners();
+  };
+
+  const handleTextCreated = (payload: any) => {
+    try {
+      const value = payload?.text?.value;
+      if (typeof value === 'string') {
+        chunks.push(value);
+      }
+    } catch {
+      // Ignora errori nel parsing del payload
+    }
+  };
+
+  if (typeof stream?.on !== 'function' || typeof stream?.off !== 'function') {
+    secureLog.warn('Assistant stream does not support event listeners for caching', {
+      question: question.substring(0, 50),
     });
+    return;
   }
+
+  stream.on('textDelta', collectDelta);
+  stream.on('textCreated', handleTextCreated);
+  stream.on('event', handleStreamEvent);
+  stream.on('error', handleStreamError);
+  stream.on('abort', handleStreamError);
 }

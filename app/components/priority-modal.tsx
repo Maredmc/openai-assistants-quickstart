@@ -33,6 +33,7 @@ export default function PriorityModal({
     e.preventDefault();
     setLoading(true);
     setError('');
+    setMessage('');
 
     try {
       const response = await fetch('/api/priority', {
@@ -40,7 +41,7 @@ export default function PriorityModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'register',
-          email,
+          email: email.trim(),
           userId,
         }),
       });
@@ -49,7 +50,11 @@ export default function PriorityModal({
 
       if (data.success) {
         setMessage(data.message);
-        if (data.alreadyRegistered) {
+        const skipVerification =
+          Boolean(data.alreadyRegistered) || data.requiresVerification === false;
+
+        if (skipVerification) {
+          setCode('');
           setStep('success');
           setTimeout(() => {
             onSuccess();
@@ -58,7 +63,7 @@ export default function PriorityModal({
           setStep('verify');
         }
       } else {
-        setError(data.error || 'Errore durante la registrazione');
+        setError(data.error || data.message || 'Errore durante la registrazione');
       }
     } catch (err) {
       setError('Errore di connessione. Riprova.');
