@@ -352,6 +352,33 @@ const Chat = ({
     createThread();
   }, []);
 
+  /**
+   * 📊 Controlla status priority utente
+   */
+  const checkPriorityStatus = useCallback(async () => {
+    if (!userId) {
+      return;
+    }
+    try {
+      const response = await fetch('/api/priority', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'status',
+          userId,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.hasPriority) {
+        console.log('✅ Priority access active!', data.user);
+      }
+    } catch (err) {
+      console.error('Failed to check priority status:', err);
+    }
+  }, [userId]);
+
   // 🎯 Check priority status on mount
   useEffect(() => {
     void checkPriorityStatus();
@@ -973,33 +1000,6 @@ const Chat = ({
       }, 500);
     }
   };
-
-  /**
-   * 📊 Controlla status priority utente
-   */
-  const checkPriorityStatus = useCallback(async () => {
-    if (!userId) {
-      return;
-    }
-    try {
-      const response = await fetch('/api/priority', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'status',
-          userId,
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (data.success && data.hasPriority) {
-        console.log('✅ Priority access active!', data.user);
-      }
-    } catch (err) {
-      console.error('Failed to check priority status:', err);
-    }
-  }, [userId]);
 
   const annotateLastMessage = (annotations: any) => {
     setMessages((prevMessages: any) => {
