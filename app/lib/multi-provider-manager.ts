@@ -1,333 +1,275 @@
 /**
- * 🔄 Multi-Provider AI Manager
+ * 🔄 Multi-Provider Manager con Fallback Automatico
  * 
- * Gestisce fallback automatico tra OpenAI e Claude API
+ * Passa automaticamente da OpenAI ad Anthropic quando:
+ * - Rate limit raggiunto
+ * - Errori di API
+ * - Timeout
  * 
  * Features:
- * - Fallback automatico se OpenAI fallisce
- * - Load balancing tra provider
- * - Circuit breaker per provider down
- * - Statistics & monitoring
+ * - Circuit breaker pattern
+ * - Automatic recovery
+ * - Health monitoring
+ * 
+ * NOTA: Questo modulo è OPZIONALE e standalone.
+ * Se Anthropic non è configurato, semplicemente non farà nulla.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
-import { secureLog } from './secure-logger';
-import OpenAI from 'openai';
+// Simple logger
+const log = (message: string, level: 'INFO' | 'WARNING' | 'ERROR' = 'INFO') => {
+  if (process.env.NODE_ENV === 'development') {
+    const timestamp = new Date().toISOString();
+    const emoji = level === 'ERROR' ? '❌' : level === 'WARNING' ? '⚠️' : 'ℹ️';
+    console.log(`${emoji} [${timestamp}] ${message}`);
+  }
+};
 
-type Provider = 'openai' | 'claude';
+type Provider = 'openai' | 'anthropic';
 
-type ProviderStatus = {
-  provider: Provider;
-  available: boolean;
-  lastError?: string;
-  lastErrorAt?: number;
+interface ProviderStatus {
+  healthy: boolean;
   failureCount: number;
-  successCount: number;
-};
+  lastFailure: Date | null;
+  lastSuccess: Date | null;
+  circuitOpen: boolean;
+}
 
-type ProviderStats = {
-  openai: ProviderStatus;
-  claude: ProviderStatus;
-  totalRequests: number;
-  currentProvider: Provider;
-};
+interface ProviderMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 class MultiProviderManager {
-  private anthropic: Anthropic | null = null;
-  private openaiClient: OpenAI | null = null;
-  
-  private providerStatus: Record<Provider, ProviderStatus> = {
-    openai: {
-      provider: 'openai',
-      available: true,
-      failureCount: 0,
-      successCount: 0,
-    },
-    claude: {
-      provider: 'claude',
-      available: false, // Disabilitato finché non configurato
-      failureCount: 0,
-      successCount: 0,
-    },
-  };
-  
-  private totalRequests = 0;
+  private anthropic: any = null;
   private currentProvider: Provider = 'openai';
-
-  // ⚙️ Configurazione Circuit Breaker
-  private readonly FAILURE_THRESHOLD = 3; // Dopo 3 fallimenti, disabilita provider
-  private readonly RECOVERY_TIMEOUT = 5 * 60 * 1000; // Riprova dopo 5 minuti
-  private readonly USE_CLAUDE_FALLBACK = process.env.USE_CLAUDE_FALLBACK === 'true';
-
+  private providerStatus: Map<Provider, ProviderStatus> = new Map();
+  
+  // Configuration
+  private readonly MAX_FAILURES = 3;
+  private readonly CIRCUIT_RESET_TIME = 60000; // 1 minuto
+  private readonly RECOVERY_CHECK_INTERVAL = 30000; // 30 secondi
+  
   constructor() {
-    // Inizializza Claude se API key disponibile
-    if (process.env.ANTHROPIC_API_KEY && this.USE_CLAUDE_FALLBACK) {
-      this.anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY,
-      });
-      this.providerStatus.claude.available = true;
-      
-      secureLog.info('Claude API initialized as fallback');
-    }
+    // Inizializza status providers
+    this.providerStatus.set('openai', {
+      healthy: true,
+      failureCount: 0,
+      lastFailure: null,
+      lastSuccess: new Date(),
+      circuitOpen: false
+    });
+    
+    this.providerStatus.set('anthropic', {
+      healthy: true,
+      failureCount: 0,
+      lastFailure: null,
+      lastSuccess: null,
+      circuitOpen: false
+    });
 
-    // Inizializza OpenAI
-    if (process.env.OPENAI_API_KEY) {
-      this.openaiClient = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
-      
-      secureLog.info('OpenAI API initialized');
-    }
-
-    // Avvia recovery monitor
-    this.startRecoveryMonitor();
-  }
-
-  /**
-   * 🤖 Genera risposta con fallback automatico
-   */
-  async generateResponse(
-    threadId: string,
-    message: string,
-    context?: string
-  ): Promise<{
-    response: string;
-    provider: Provider;
-    fromCache: boolean;
-  }> {
-    this.totalRequests++;
-
-    // Prova con provider primario (OpenAI)
-    if (this.providerStatus.openai.available) {
+    // Inizializza Anthropic solo se configurato E se il package è installato
+    if (process.env.ANTHROPIC_API_KEY && process.env.USE_CLAUDE_FALLBACK === 'true') {
       try {
-        const response = await this.callOpenAI(threadId, message, context);
-        this.recordSuccess('openai');
-        
-        return {
-          response,
-          provider: 'openai',
-          fromCache: false,
-        };
-      } catch (error) {
-        this.recordFailure('openai', error);
-        
-        secureLog.warn('OpenAI failed, trying Claude fallback', {
-          error: error instanceof Error ? error.message : 'Unknown error',
+        // Dynamic import per evitare errori se il package non è installato
+        const Anthropic = require('@anthropic-ai/sdk');
+        this.anthropic = new Anthropic.default({
+          apiKey: process.env.ANTHROPIC_API_KEY
         });
+        log('✅ Anthropic fallback enabled', 'INFO');
+      } catch (error: any) {
+        log(`⚠️ Anthropic SDK not installed - fallback disabled. Run: npm install @anthropic-ai/sdk`, 'WARNING');
       }
+    } else {
+      log('ℹ️ Anthropic fallback not configured (set USE_CLAUDE_FALLBACK=true)', 'INFO');
     }
 
-    // Fallback a Claude se disponibile
-    if (this.providerStatus.claude.available) {
-      try {
-        const response = await this.callClaude(message, context);
-        this.recordSuccess('claude');
-        
-        secureLog.info('Successfully used Claude fallback');
-        
-        return {
-          response,
-          provider: 'claude',
-          fromCache: false,
-        };
-      } catch (error) {
-        this.recordFailure('claude', error);
-        
-        throw new Error('Tutti i provider AI non sono disponibili. Riprova tra qualche minuto.');
+    // Avvia monitoring solo se Anthropic è disponibile
+    if (this.anthropic) {
+      this.startHealthMonitoring();
+    }
+  }
+
+  /**
+   * 🔍 Verifica se OpenAI è disponibile
+   */
+  private isOpenAIHealthy(): boolean {
+    const status = this.providerStatus.get('openai');
+    if (!status) return false;
+
+    // Se il circuit breaker è aperto, verifica se è tempo di riprovare
+    if (status.circuitOpen) {
+      const timeSinceFailure = Date.now() - (status.lastFailure?.getTime() || 0);
+      if (timeSinceFailure > this.CIRCUIT_RESET_TIME) {
+        // Reset circuit breaker
+        status.circuitOpen = false;
+        status.failureCount = 0;
+        log('🔓 OpenAI circuit breaker reset', 'INFO');
+        return true;
       }
+      return false;
     }
 
-    // Nessun provider disponibile
-    throw new Error('Servizio temporaneamente non disponibile. Riprova tra qualche minuto.');
+    return status.healthy && status.failureCount < this.MAX_FAILURES;
   }
 
   /**
-   * 🤖 Chiama OpenAI API
+   * 🚨 Registra fallimento OpenAI e attiva fallback
    */
-  private async callOpenAI(
-    threadId: string,
-    message: string,
-    context?: string
-  ): Promise<string> {
-    if (!this.openaiClient) {
-      throw new Error('OpenAI client not initialized');
-    }
+  async handleOpenAIFailure(error: any): Promise<{ shouldFallback: boolean; provider: Provider }> {
+    const status = this.providerStatus.get('openai');
+    if (!status) return { shouldFallback: false, provider: 'openai' };
 
-    // Questa è una chiamata semplificata
-    // Nel tuo caso userai l'Assistant API con streaming
-    // Questo è solo per dimostrare il concetto
-    
-    const completion = await this.openaiClient.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
-      messages: [
-        {
-          role: 'system',
-          content: context || 'Sei un assistente per Nabè specializzato in letti evolutivi.',
-        },
-        {
-          role: 'user',
-          content: message,
-        },
-      ],
-      max_tokens: 1000,
-      temperature: 0.7,
-    });
-
-    return completion.choices[0]?.message?.content || 'Errore nella generazione della risposta';
-  }
-
-  /**
-   * 🤖 Chiama Claude API
-   */
-  private async callClaude(message: string, context?: string): Promise<string> {
-    if (!this.anthropic) {
-      throw new Error('Claude client not initialized');
-    }
-
-    const systemPrompt = context || `Sei l'assistente virtuale ufficiale di Nabè dedicato ai letti evolutivi e accessori Montessori.
-
-🎯 SALUTO INIZIALE CRUCIALE:
-- PRIMO messaggio ASSOLUTO della conversazione: "Gentile cliente, sono l'assistente di Nabè..."
-- TUTTI i messaggi successivi: sempre "tu" (MAI più "Gentile cliente")
-
-⭐ USA GRASSETTO per:
-- **Età bambini** (esempio: **3 anni**)
-- **Dimensioni letti** (esempio: **190x80cm**)
-- **Nomi prodotti** (esempio: **zero+ Dream**)
-
-💬 TONO: Italiano caloroso, motivazionale, professionale.
-
-📐 FORMATO RISPOSTA:
-- Solo paragrafi, mai elenchi puntati
-- Massimo 6-7 frasi per paragrafo`;
-
-    const completion = await this.anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: message,
-        },
-      ],
-    });
-
-    const textContent = completion.content.find((c): c is Anthropic.TextBlock => c.type === 'text');
-    return textContent?.text || 'Errore nella generazione della risposta';
-  }
-
-  /**
-   * ✅ Registra successo provider
-   */
-  private recordSuccess(provider: Provider): void {
-    const status = this.providerStatus[provider];
-    status.successCount++;
-    status.failureCount = 0; // Reset fallimenti
-    status.available = true;
-    delete status.lastError;
-    delete status.lastErrorAt;
-    
-    this.currentProvider = provider;
-  }
-
-  /**
-   * ❌ Registra fallimento provider
-   */
-  private recordFailure(provider: Provider, error: unknown): void {
-    const status = this.providerStatus[provider];
     status.failureCount++;
-    status.lastError = error instanceof Error ? error.message : 'Unknown error';
-    status.lastErrorAt = Date.now();
+    status.lastFailure = new Date();
 
-    // Circuit breaker: disabilita se troppi fallimenti
-    if (status.failureCount >= this.FAILURE_THRESHOLD) {
-      status.available = false;
+    const errorCode = error?.status || error?.code;
+    const errorMessage = error?.message || '';
+
+    log(`❌ OpenAI failure #${status.failureCount}: ${errorCode} - ${errorMessage}`, 'ERROR');
+
+    // Verifica se è un rate limit error
+    const isRateLimit = errorCode === 429 || 
+                       errorMessage.includes('rate_limit') ||
+                       errorMessage.includes('quota');
+
+    // Verifica se è un errore server (5xx)
+    const isServerError = errorCode >= 500 && errorCode < 600;
+
+    // Attiva circuit breaker se:
+    // 1. Rate limit raggiunto
+    // 2. Troppi fallimenti consecutivi
+    // 3. Errore server persistente
+    if (isRateLimit || status.failureCount >= this.MAX_FAILURES || isServerError) {
+      status.healthy = false;
+      status.circuitOpen = true;
       
-      secureLog.error('Provider disabled by circuit breaker', {
-        provider,
-        failureCount: status.failureCount,
-        lastError: status.lastError,
-      });
+      log('🔒 OpenAI circuit breaker OPENED - switching to Anthropic', 'WARNING');
+
+      // Passa ad Anthropic se disponibile
+      if (this.anthropic) {
+        this.currentProvider = 'anthropic';
+        return { shouldFallback: true, provider: 'anthropic' };
+      }
+    }
+
+    return { shouldFallback: false, provider: 'openai' };
+  }
+
+  /**
+   * ✅ Registra successo OpenAI
+   */
+  markOpenAISuccess(): void {
+    const status = this.providerStatus.get('openai');
+    if (!status) return;
+
+    status.healthy = true;
+    status.failureCount = 0;
+    status.lastSuccess = new Date();
+    status.circuitOpen = false;
+
+    // Se eravamo su Anthropic, torna a OpenAI
+    if (this.currentProvider === 'anthropic') {
+      log('✅ OpenAI recovered - switching back from Anthropic', 'INFO');
+      this.currentProvider = 'openai';
     }
   }
 
   /**
-   * 🔄 Monitora recovery provider
+   * 🤖 Invia messaggio ad Anthropic (fallback)
    */
-  private startRecoveryMonitor(): void {
-    setInterval(() => {
-      const now = Date.now();
+  async sendToAnthropic(
+    messages: ProviderMessage[],
+    systemPrompt?: string
+  ): Promise<string> {
+    if (!this.anthropic) {
+      throw new Error('Anthropic not configured');
+    }
 
-      for (const [providerName, status] of Object.entries(this.providerStatus)) {
-        // Se provider disabilitato e timeout scaduto, riattiva
-        if (
-          !status.available &&
-          status.lastErrorAt &&
-          now - status.lastErrorAt > this.RECOVERY_TIMEOUT
-        ) {
-          status.available = true;
-          status.failureCount = 0;
-          delete status.lastError;
-          delete status.lastErrorAt;
-          
-          secureLog.info('Provider recovered and re-enabled', {
-            provider: providerName,
-          });
+    try {
+      log('📤 Sending request to Anthropic', 'INFO');
+
+      const response = await this.anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1024,
+        system: systemPrompt || 'You are a helpful assistant for an e-commerce furniture store.',
+        messages: messages.map((msg: ProviderMessage) => ({
+          role: msg.role === 'user' ? 'user' : 'assistant',
+          content: msg.content
+        }))
+      });
+
+      const anthropicStatus = this.providerStatus.get('anthropic');
+      if (anthropicStatus) {
+        anthropicStatus.lastSuccess = new Date();
+        anthropicStatus.healthy = true;
+      }
+
+      const content = response.content[0];
+      const responseText = content.type === 'text' ? content.text : '';
+      
+      log(`✅ Anthropic response received (${responseText.length} chars)`, 'INFO');
+
+      return responseText;
+
+    } catch (error: any) {
+      log(`❌ Anthropic error: ${error.message}`, 'ERROR');
+      throw error;
+    }
+  }
+
+  /**
+   * 🔍 Health monitoring - controlla periodicamente lo stato dei provider
+   */
+  private startHealthMonitoring(): void {
+    setInterval(() => {
+      const openaiStatus = this.providerStatus.get('openai');
+      const anthropicStatus = this.providerStatus.get('anthropic');
+
+      if (openaiStatus && openaiStatus.circuitOpen) {
+        const timeSinceFailure = Date.now() - (openaiStatus.lastFailure?.getTime() || 0);
+        if (timeSinceFailure > this.CIRCUIT_RESET_TIME) {
+          log('🔄 Attempting OpenAI recovery...', 'INFO');
+          // Il circuit breaker verrà resettato al prossimo check
         }
       }
-    }, 60 * 1000); // Check ogni minuto
+
+      // Log status periodico (solo in sviluppo)
+      if (process.env.NODE_ENV === 'development') {
+        log(
+          `📊 Provider Status - Current: ${this.currentProvider} | ` +
+          `OpenAI: ${openaiStatus?.healthy ? '✅' : '❌'} (failures: ${openaiStatus?.failureCount}) | ` +
+          `Anthropic: ${anthropicStatus?.healthy ? '✅' : '❌'}`,
+          'INFO'
+        );
+      }
+    }, this.RECOVERY_CHECK_INTERVAL);
   }
 
   /**
-   * 🎯 Ottieni provider preferito disponibile
+   * 📊 Ottieni provider corrente
    */
-  getPreferredProvider(): Provider {
-    // Priorità: OpenAI > Claude
-    if (this.providerStatus.openai.available) {
-      return 'openai';
+  getCurrentProvider(): Provider {
+    return this.currentProvider;
+  }
+
+  /**
+   * 📊 Ottieni status di tutti i provider
+   */
+  getProviderStatus(): Map<Provider, ProviderStatus> {
+    return new Map(this.providerStatus);
+  }
+
+  /**
+   * 🔧 Forza cambio provider (per testing)
+   */
+  forceProvider(provider: Provider): void {
+    if (provider === 'anthropic' && !this.anthropic) {
+      throw new Error('Cannot force Anthropic - not configured');
     }
-    
-    if (this.providerStatus.claude.available) {
-      return 'claude';
-    }
-
-    // Default OpenAI (anche se down, potrebbe riprendersi)
-    return 'openai';
-  }
-
-  /**
-   * 📊 Ottieni statistiche provider
-   */
-  getStats(): ProviderStats {
-    return {
-      openai: { ...this.providerStatus.openai },
-      claude: { ...this.providerStatus.claude },
-      totalRequests: this.totalRequests,
-      currentProvider: this.currentProvider,
-    };
-  }
-
-  /**
-   * 🔄 Reset manuale circuit breaker
-   */
-  resetCircuitBreaker(provider: Provider): void {
-    const status = this.providerStatus[provider];
-    status.available = true;
-    status.failureCount = 0;
-    delete status.lastError;
-    delete status.lastErrorAt;
-    
-    secureLog.info('Circuit breaker manually reset', { provider });
-  }
-
-  /**
-   * 🔍 Check se fallback è configurato
-   */
-  hasFallback(): boolean {
-    return this.anthropic !== null && this.USE_CLAUDE_FALLBACK;
+    this.currentProvider = provider;
+    log(`🔧 Forced provider switch to: ${provider}`, 'INFO');
   }
 }
 
-// 🌍 Singleton globale
+// Singleton instance
 export const multiProviderManager = new MultiProviderManager();
