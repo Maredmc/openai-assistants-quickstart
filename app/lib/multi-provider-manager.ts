@@ -213,7 +213,7 @@ class MultiProviderManager {
       ],
     });
 
-    const textContent = completion.content.find(c => c.type === 'text');
+    const textContent = completion.content.find((c): c is Anthropic.TextBlock => c.type === 'text');
     return textContent?.text || 'Errore nella generazione della risposta';
   }
 
