@@ -12,6 +12,7 @@ import ContactForm from "./contact-form";
 import ProductCard from "./product-card";
 import FloatingContact from "./floating-contact";
 import QueueStatus from "./queue-status";
+import PriorityModal from "./priority-modal";
 import { addToCart, getCart, getCartItemCount } from "../lib/cart";
 import { trackAddToCart, trackProductView } from "../lib/shopify-analytics";
 import { performanceMonitor } from "../utils/performance-monitor";
@@ -287,6 +288,9 @@ const Chat = ({
   const [queueInfo, setQueueInfo] = useState<QueueState>(() => ({
     ...INITIAL_QUEUE_STATE,
   }));
+  
+  // 🎯 Priority Modal State
+  const [showPriorityModal, setShowPriorityModal] = useState(false);
 
   // Inizializza cart count
   useEffect(() => {
@@ -347,6 +351,13 @@ const Chat = ({
     };
     createThread();
   }, []);
+
+  // 🎯 Check priority status on mount
+  useEffect(() => {
+    if (userId) {
+      checkPriorityStatus();
+    }
+  }, [userId]);
 
   const adjustInputHeight = useCallback(() => {
     const el = inputRef.current;
@@ -503,13 +514,19 @@ const Chat = ({
           const errorData = await response.json();
 
           if (response.status === 503 || errorData.code === 'QUEUE_FULL' || errorData.code === 'SYSTEM_OVERLOADED') {
-            // 🚫 Sistema sovraccarico - Mostra componente coda
-            console.log('🚦 Sistema sovraccarico - Attivazione coda visuale');
+            // 🎯 Sistema sovraccarico - Mostra priority modal
+            console.log('🚦 Sistema sovraccarico - Mostra priority modal');
+            
+            // Mostra modal priority
+            setShowPriorityModal(true);
+            
             setQueueInfo({
               ...INITIAL_QUEUE_STATE,
               isInQueue: true,
               pendingMessage: text,
+              error: 'Sistema sovraccarico. Registrati per accesso prioritario!',
             });
+            
             setChatState(prev => ({ ...prev, inputDisabled: false, isLoading: false }));
             return;
           } else if (response.status === 408 || errorData.code === 'TIMEOUT') {
@@ -942,6 +959,47 @@ const Chat = ({
     }
   };
 
+  /**
+   * 🎯 Handler per successo registrazione priority
+   */
+  const handlePrioritySuccess = () => {
+    setShowPriorityModal(false);
+    checkPriorityStatus();
+    
+    // Riprova messaggio pendente se presente
+    if (queueInfo.pendingMessage) {
+      const message = queueInfo.pendingMessage;
+      setQueueInfo(INITIAL_QUEUE_STATE);
+      setTimeout(() => {
+        sendMessage(message);
+      }, 500);
+    }
+  };
+
+  /**
+   * 📊 Controlla status priority utente
+   */
+  const checkPriorityStatus = async () => {
+    try {
+      const response = await fetch('/api/priority', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'status',
+          userId,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.hasPriority) {
+        console.log('✅ Priority access active!', data.user);
+      }
+    } catch (err) {
+      console.error('Failed to check priority status:', err);
+    }
+  };
+
   const annotateLastMessage = (annotations: any) => {
     setMessages((prevMessages: any) => {
       const lastMessage = prevMessages[prevMessages.length - 1];
@@ -1199,6 +1257,15 @@ const Chat = ({
           />
         </div>
       )}
+
+      {/* 🎯 Priority Modal - Registrazione per accesso prioritario */}
+      <PriorityModal
+        userId={userId}
+        isVisible={showPriorityModal}
+        onClose={() => setShowPriorityModal(false)}
+        onSuccess={handlePrioritySuccess}
+        trigger="queue"
+      />
       
       {/* 📍 Bottone "Vai alla fine del messaggio" */}
       {showScrollToEnd && !queueInfo.isInQueue && (
