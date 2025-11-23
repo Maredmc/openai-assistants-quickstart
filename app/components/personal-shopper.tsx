@@ -181,22 +181,49 @@ const PersonalShopper: React.FC<PersonalShopperProps> = ({ onSwitchToChat, onBac
   const getRecommendedProductHandles = (): string[] => {
     const handles: string[] = [];
 
-    // Suggerimenti basati su età - usa handle reali dei prodotti
+    // Suggerimenti basati su età
     if (answers.childAge === '0-1') {
-      handles.push('zero-plus-dream'); // Letto Montessori zero+ Dream
+      handles.push('letto-montessori-casetta-baldacchino-zeropiu'); // zero+ Dream per neonati
+      handles.push('letto-zeropiu-earth-con-kit-piedini-omaggio'); // zero+ Earth
     } else if (answers.childAge === '1-3') {
-      handles.push('zero-plus-dream'); // zero+ Dream va bene anche per 1-3 anni
+      handles.push('letto-evolutivo-fun'); // zero+ Fun per prima infanzia
+      handles.push('letto-montessori-casetta-baldacchino-zeropiu'); // zero+ Dream
     } else if (answers.childAge === '3+') {
-      handles.push('zero-plus-dream'); // Anche per 3+
+      handles.push('letto-a-soppalco-evolutivo-zero-uppy'); // zero+ Uppy per più grandi
+      handles.push('letto-evolutivo-fun'); // zero+ Fun
     }
 
-    // Accessori consigliati
+    // Suggerimenti basati su numero bambini
+    if (answers.numberOfChildren === '2' || answers.numberOfChildren === '2+') {
+      handles.push('letto-a-castello-zero-duo-con-kit-piedini-omaggio'); // zero+ Duo per fratelli
+      handles.push('letto-evolutivo-zero-family-con-kit-piedini-omaggio'); // zero+ Family per co-sleeping
+    }
+
+    // Suggerimenti basati su dimensioni stanza
+    if (answers.roomSize === 'small') {
+      handles.push('letto-a-soppalco-mezza-altezza-evolutivo-zero-up'); // zero+ Up salva spazio
+    }
+
+    // Accessori consigliati in base alle preferenze
     if (answers.preferences.includes('safety')) {
-      handles.push('sponde-protettive'); // Sponde di sicurezza
+      handles.push('sponde-protettive-per-letto-zeropiu'); // Sponde protezione
+      handles.push('riduttore-evolutivo-zeropiu'); // Paracolpi-riduttore
     }
 
-    // Rimuovi duplicati e limita a 4 prodotti
-    return [...new Set(handles)].slice(0, 4);
+    if (answers.preferences.includes('storage')) {
+      handles.push('letto-contenitore-estraibile-zeropiu'); // Cassettone
+    }
+
+    if (answers.preferences.includes('montessori')) {
+      handles.push('letto-montessori-casetta-baldacchino-zeropiu'); // zero+ Dream Montessori
+      handles.push('torre-montessoriana-mia'); // Torre Montessoriana
+    }
+
+    // Aggiungi materasso come suggerimento generale
+    handles.push('materasso-evolutivo-zeropiu');
+
+    // Rimuovi duplicati e limita a 6 prodotti
+    return [...new Set(handles)].slice(0, 6);
   };
 
   const getRecommendedProducts = (): Product[] => {
