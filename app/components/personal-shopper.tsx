@@ -316,7 +316,7 @@ const PersonalShopper: React.FC<PersonalShopperProps> = ({ onSwitchToChat, onBac
             className={styles.actionButton}
             onClick={() => onSwitchToChat(generateChatQuestion())}
           >
-            💬 Continua con l'assistente
+            💬 Continua con l&apos;assistente
           </button>
           <button
             className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
@@ -327,7 +327,7 @@ const PersonalShopper: React.FC<PersonalShopperProps> = ({ onSwitchToChat, onBac
         </div>
 
         <p className={styles.summaryNote}>
-          L'assistente AI potrà darti informazioni dettagliate, mostrarti i prodotti e rispondere a tutte le tue domande!
+          L&apos;assistente AI potrà darti informazioni dettagliate, mostrarti i prodotti e rispondere a tutte le tue domande!
         </p>
       </div>
     </div>

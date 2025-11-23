@@ -76,7 +76,7 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ onSelectMode }) => {
       </div>
 
       <p className={styles.footerNote}>
-        💡 Potrai sempre passare da una modalità all'altra in qualsiasi momento
+        💡 Potrai sempre passare da una modalità all&apos;altra in qualsiasi momento
       </p>
     </div>
   );
