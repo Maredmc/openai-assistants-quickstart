@@ -114,16 +114,16 @@ const PersonalShopper: React.FC<PersonalShopperProps> = ({ onSwitchToChat, onBac
     },
     {
       id: 'preferences',
-      title: 'Preferenze',
-      question: 'Cosa ti interessa di più? (scegli una o più opzioni)',
-      icon: '⭐',
+      title: 'Stile e Atmosfera',
+      question: 'Che stile preferisci per la cameretta? (scegli una o più opzioni)',
+      icon: '🎨',
       multiple: true,
       options: [
-        { value: 'montessori', label: 'Metodo Montessori', description: 'Autonomia e indipendenza' },
-        { value: 'safety', label: 'Sicurezza', description: 'Sponde e protezioni' },
-        { value: 'evolution', label: 'Evolutività', description: 'Cresce con il bambino' },
-        { value: 'storage', label: 'Contenimento', description: 'Cassetti e spazio extra' },
-        { value: 'design', label: 'Design', description: 'Estetica e stile' }
+        { value: 'natural', label: 'Legno Naturale', description: 'Caldo e accogliente' },
+        { value: 'white', label: 'Bianco Laccato', description: 'Moderno e luminoso' },
+        { value: 'playful', label: 'Giocoso', description: 'Casetta o tenda' },
+        { value: 'minimal', label: 'Minimalista', description: 'Essenziale e pulito' },
+        { value: 'cozy', label: 'Accogliente', description: 'Morbido e protetto' }
       ]
     }
   ];
@@ -180,50 +180,67 @@ const PersonalShopper: React.FC<PersonalShopperProps> = ({ onSwitchToChat, onBac
 
   const getRecommendedProductHandles = (): string[] => {
     const handles: string[] = [];
+    const bedHandles: string[] = [];
 
-    // Suggerimenti basati su età
+    // 🛏️ LETTI - Suggerimenti basati su età (PRIORITÀ MASSIMA)
     if (answers.childAge === '0-1') {
-      handles.push('letto-montessori-casetta-baldacchino-zeropiu'); // zero+ Dream per neonati
-      handles.push('letto-zeropiu-earth-con-kit-piedini-omaggio'); // zero+ Earth
+      bedHandles.push('letto-montessori-casetta-baldacchino-zeropiu'); // zero+ Dream per neonati
+      bedHandles.push('letto-zeropiu-earth-con-kit-piedini-omaggio'); // zero+ Earth
     } else if (answers.childAge === '1-3') {
-      handles.push('letto-evolutivo-fun'); // zero+ Fun per prima infanzia
-      handles.push('letto-montessori-casetta-baldacchino-zeropiu'); // zero+ Dream
+      bedHandles.push('letto-evolutivo-fun'); // zero+ Fun per prima infanzia
+      bedHandles.push('letto-montessori-casetta-baldacchino-zeropiu'); // zero+ Dream
     } else if (answers.childAge === '3+') {
-      handles.push('letto-a-soppalco-evolutivo-zero-uppy'); // zero+ Uppy per più grandi
-      handles.push('letto-evolutivo-fun'); // zero+ Fun
+      bedHandles.push('letto-a-soppalco-evolutivo-zero-uppy'); // zero+ Uppy per più grandi
+      bedHandles.push('letto-evolutivo-fun'); // zero+ Fun
+    } else {
+      // Se non ha risposto all'età, mostra comunque i letti più versatili
+      bedHandles.push('letto-zeropiu-earth-con-kit-piedini-omaggio'); // Earth versatile
+      bedHandles.push('letto-montessori-casetta-baldacchino-zeropiu'); // Dream popolare
     }
 
     // Suggerimenti basati su numero bambini
     if (answers.numberOfChildren === '2' || answers.numberOfChildren === '2+') {
-      handles.push('letto-a-castello-zero-duo-con-kit-piedini-omaggio'); // zero+ Duo per fratelli
-      handles.push('letto-evolutivo-zero-family-con-kit-piedini-omaggio'); // zero+ Family per co-sleeping
+      bedHandles.push('letto-a-castello-zero-duo-con-kit-piedini-omaggio'); // zero+ Duo per fratelli
+      bedHandles.push('letto-evolutivo-zero-family-con-kit-piedini-omaggio'); // zero+ Family per co-sleeping
     }
 
     // Suggerimenti basati su dimensioni stanza
     if (answers.roomSize === 'small') {
-      handles.push('letto-a-soppalco-mezza-altezza-evolutivo-zero-up'); // zero+ Up salva spazio
+      bedHandles.push('letto-a-soppalco-mezza-altezza-evolutivo-zero-up'); // zero+ Up salva spazio
     }
 
-    // Accessori consigliati in base alle preferenze
-    if (answers.preferences.includes('safety')) {
+    // 🎨 LETTI E ACCESSORI - Suggerimenti basati su stile/atmosfera
+    if (answers.preferences.includes('playful')) {
+      bedHandles.push('letto-montessori-casetta-baldacchino-zeropiu'); // zero+ Dream casetta
+    }
+
+    if (answers.preferences.includes('minimal')) {
+      bedHandles.push('letto-zeropiu-earth-con-kit-piedini-omaggio'); // zero+ Earth minimal
+    }
+
+    if (answers.preferences.includes('cozy')) {
       handles.push('sponde-protettive-per-letto-zeropiu'); // Sponde protezione
       handles.push('riduttore-evolutivo-zeropiu'); // Paracolpi-riduttore
     }
 
-    if (answers.preferences.includes('storage')) {
-      handles.push('letto-contenitore-estraibile-zeropiu'); // Cassettone
+    if (answers.preferences.includes('natural') || answers.preferences.includes('white')) {
+      // Tutti i nostri letti sono disponibili in legno naturale o laccato
+      handles.push('torre-montessoriana-mia'); // Torre complemento
     }
 
-    if (answers.preferences.includes('montessori')) {
-      handles.push('letto-montessori-casetta-baldacchino-zeropiu'); // zero+ Dream Montessori
-      handles.push('torre-montessoriana-mia'); // Torre Montessoriana
-    }
+    // 🔧 ACCESSORI UTILI
+    handles.push('materasso-evolutivo-zeropiu'); // Materasso sempre consigliato
+    handles.push('letto-contenitore-estraibile-zeropiu'); // Cassettone salvaspazio
 
-    // Aggiungi materasso come suggerimento generale
-    handles.push('materasso-evolutivo-zeropiu');
+    // ✅ GARANZIA: Almeno 2 letti sempre presenti
+    const uniqueBeds = [...new Set(bedHandles)];
+    const finalBeds = uniqueBeds.slice(0, 4); // Max 4 letti
 
-    // Rimuovi duplicati e limita a 6 prodotti
-    return [...new Set(handles)].slice(0, 6);
+    // Combina letti (priorità) + accessori
+    const allHandles = [...finalBeds, ...handles];
+
+    // Rimuovi duplicati e limita a 6 prodotti totali
+    return [...new Set(allHandles)].slice(0, 6);
   };
 
   const getRecommendedProducts = (): Product[] => {
