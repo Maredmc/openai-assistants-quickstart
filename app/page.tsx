@@ -2,9 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import Chat from './components/chat';
+import ModeSelector from './components/mode-selector';
+import PersonalShopper from './components/personal-shopper';
 import styles from './page.module.css';
 
+type ViewMode = 'mode-selector' | 'chat' | 'personal-shopper';
+
 const BedAdvisorChatbot = () => {
+  const [currentView, setCurrentView] = useState<ViewMode>('mode-selector');
   const [initialContext, setInitialContext] = useState<{
     product?: string | null;
     price?: string | null;
@@ -26,12 +31,48 @@ const BedAdvisorChatbot = () => {
         prefillQuestion,
         fromShopify: true
       });
+      // Se ci sono parametri da Shopify, vai direttamente alla chat
+      setCurrentView('chat');
     }
   }, []);
 
+  const handleSelectMode = (mode: 'chat' | 'personal-shopper') => {
+    setCurrentView(mode);
+  };
+
+  const handleSwitchToChat = (prefillQuestion?: string) => {
+    if (prefillQuestion) {
+      setInitialContext({
+        prefillQuestion,
+        fromShopify: false
+      });
+    }
+    setCurrentView('chat');
+  };
+
+  const handleBackToSelector = () => {
+    setCurrentView('mode-selector');
+    setInitialContext(null);
+  };
+
   return (
     <div className={styles.container}>
-      <Chat initialContext={initialContext} />
+      {currentView === 'mode-selector' && (
+        <ModeSelector onSelectMode={handleSelectMode} />
+      )}
+
+      {currentView === 'chat' && (
+        <Chat
+          initialContext={initialContext}
+        />
+      )}
+
+      {currentView === 'personal-shopper' && (
+        <PersonalShopper
+          onSwitchToChat={handleSwitchToChat}
+          onBack={handleBackToSelector}
+        />
+      )}
     </div>
   );
 };
