@@ -251,45 +251,48 @@
   max-width: 500px;
 }
 
-.recommendationsContainer {
+.productsGrid {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
   margin-bottom: 36px;
 }
 
-.recommendationCard {
+.loadingContainer {
+  width: 100%;
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 18px 22px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(121, 174, 163, 0.08) 0%, rgba(90, 157, 143, 0.12) 100%);
-  border: 1px solid rgba(121, 174, 163, 0.3);
-  animation: slideInLeft 0.4s ease;
-}
-
-.recIcon {
-  display: inline-flex;
-  align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #79aea3 0%, #5a9d8f 100%);
-  color: white;
-  font-size: 12px;
-  font-weight: 700;
-  flex-shrink: 0;
+  align-items: center;
+  padding: 60px 20px;
+  margin-bottom: 36px;
 }
 
-.recText {
-  flex: 1;
-  font-size: 15px;
-  color: #1f2937;
+.loadingSpinner {
+  font-size: 16px;
+  color: #79aea3;
   font-weight: 600;
-  line-height: 1.5;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.noProductsMessage {
+  text-align: center;
+  font-size: 15px;
+  color: #6b7280;
+  line-height: 1.6;
+  padding: 40px 20px;
+  background: rgba(250, 241, 224, 0.3);
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
 }
 
 @keyframes slideInLeft {

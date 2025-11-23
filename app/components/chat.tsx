@@ -251,11 +251,13 @@ type ChatProps = {
     fromShopify?: boolean;
     prefillQuestion?: string;
   } | null;
+  onBackToHome?: () => void;
 };
 
 const Chat = ({
   functionCallHandler = () => Promise.resolve(""),
   initialContext = null,
+  onBackToHome,
 }: ChatProps) => {
   // Stati consolidati per performance
   const [userInput, setUserInput] = useState("");
@@ -1112,6 +1114,11 @@ const Chat = ({
             </div>
           </div>
           <div className={styles.chatHeaderStatus}>
+            {onBackToHome && (
+              <button className={styles.backToHomeButton} onClick={onBackToHome} title="Torna alla selezione modalità">
+                ← Indietro
+              </button>
+            )}
             <span className={styles.chatHeaderBadge}>vers. Beta</span>
           </div>
         </div>

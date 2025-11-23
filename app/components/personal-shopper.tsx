@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import ProductCard from './product-card';
 import styles from './personal-shopper.module.css';
 
 interface PersonalShopperProps {
@@ -22,6 +23,16 @@ interface UserAnswers {
   preferences: string[];
 }
 
+interface Product {
+  id: string;
+  name: string;
+  price: string;
+  description: string;
+  images: string[];
+  url: string;
+  inStock: boolean;
+}
+
 const PersonalShopper: React.FC<PersonalShopperProps> = ({ onSwitchToChat, onBack }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<UserAnswers>({
@@ -31,6 +42,30 @@ const PersonalShopper: React.FC<PersonalShopperProps> = ({ onSwitchToChat, onBac
     budget: '',
     preferences: []
   });
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+
+  // Fetch prodotti quando si arriva al riepilogo
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (currentStep === steps.length) {
+        setIsLoadingProducts(true);
+        try {
+          const response = await fetch('/api/products?action=list');
+          const data = await response.json();
+          if (data.success && data.products) {
+            setProducts(data.products);
+          }
+        } catch (error) {
+          console.error('Errore nel caricamento prodotti:', error);
+        } finally {
+          setIsLoadingProducts(false);
+        }
+      }
+    };
+
+    fetchProducts();
+  }, [currentStep]);
 
   const steps = [
     {
@@ -143,35 +178,30 @@ const PersonalShopper: React.FC<PersonalShopperProps> = ({ onSwitchToChat, onBac
     return answers[step.id as keyof UserAnswers] !== '';
   };
 
-  const getRecommendations = () => {
-    const recs: string[] = [];
+  const getRecommendedProductHandles = (): string[] => {
+    const handles: string[] = [];
 
-    // Suggerimenti basati su età
+    // Suggerimenti basati su età - usa handle reali dei prodotti
     if (answers.childAge === '0-1') {
-      recs.push('zero+ Earth - Perfetto per neonati con altezza regolabile');
-      recs.push('zero+ Dream - Ideale come lettino dalla nascita');
+      handles.push('zero-plus-dream'); // Letto Montessori zero+ Dream
     } else if (answers.childAge === '1-3') {
-      recs.push('zero+ Fun - Letto basso Montessori per la prima infanzia');
-      recs.push('zero+ Up - Evolutivo che cresce con il bambino');
+      handles.push('zero-plus-dream'); // zero+ Dream va bene anche per 1-3 anni
     } else if (answers.childAge === '3+') {
-      recs.push('zero+ Uppy - Letto singolo per bambini dai 3 anni in su');
-      recs.push('zero+ Family - Soluzione versatile per età prescolare');
-    }
-
-    // Suggerimenti basati su numero bambini
-    if (answers.numberOfChildren === '2' || answers.numberOfChildren === '2+') {
-      recs.push('zero+ Duo - Letto a castello o doppio perfetto per fratelli');
+      handles.push('zero-plus-dream'); // Anche per 3+
     }
 
     // Accessori consigliati
     if (answers.preferences.includes('safety')) {
-      recs.push('Sponde di sicurezza - Per notti tranquille');
-    }
-    if (answers.preferences.includes('storage')) {
-      recs.push('Cassetti contenitori - Per ottimizzare lo spazio');
+      handles.push('sponde-protettive'); // Sponde di sicurezza
     }
 
-    return recs.slice(0, 4); // Massimo 4 suggerimenti
+    // Rimuovi duplicati e limita a 4 prodotti
+    return [...new Set(handles)].slice(0, 4);
+  };
+
+  const getRecommendedProducts = (): Product[] => {
+    const handles = getRecommendedProductHandles();
+    return products.filter(p => handles.includes(p.id));
   };
 
   const generateChatQuestion = () => {
@@ -302,14 +332,32 @@ const PersonalShopper: React.FC<PersonalShopperProps> = ({ onSwitchToChat, onBac
           In base alle tue risposte, questi sono i prodotti più adatti alle tue esigenze:
         </p>
 
-        <div className={styles.recommendationsContainer}>
-          {getRecommendations().map((rec, index) => (
-            <div key={index} className={styles.recommendationCard}>
-              <span className={styles.recIcon}>✓</span>
-              <span className={styles.recText}>{rec}</span>
-            </div>
-          ))}
-        </div>
+        {isLoadingProducts ? (
+          <div className={styles.loadingContainer}>
+            <div className={styles.loadingSpinner}>Caricamento prodotti...</div>
+          </div>
+        ) : (
+          <div className={styles.productsGrid}>
+            {getRecommendedProducts().map((product) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                name={product.name}
+                price={product.price}
+                description={product.description}
+                image={product.images?.[0]}
+                url={product.url}
+                inStock={product.inStock}
+              />
+            ))}
+            {getRecommendedProducts().length === 0 && (
+              <p className={styles.noProductsMessage}>
+                Al momento non abbiamo prodotti che corrispondono perfettamente alle tue esigenze,
+                ma il nostro assistente AI potrà aiutarti a trovare la soluzione migliore!
+              </p>
+            )}
+          </div>
+        )}
 
         <div className={styles.summaryActions}>
           <button

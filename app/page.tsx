@@ -64,6 +64,7 @@ const BedAdvisorChatbot = () => {
       {currentView === 'chat' && (
         <Chat
           initialContext={initialContext}
+          onBackToHome={handleBackToSelector}
         />
       )}
 
