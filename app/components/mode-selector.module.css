@@ -1,0 +1,237 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 40px 20px;
+  background-color: #ffffff;
+  overflow-y: auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+  animation: fadeInDown 0.6s ease;
+}
+
+.logoContainer {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.logoContainer img {
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(121, 174, 163, 0.2);
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.subtitle {
+  font-size: 18px;
+  color: #6b7280;
+  font-weight: 500;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.modesContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 380px));
+  gap: 24px;
+  max-width: 840px;
+  width: 100%;
+  margin-bottom: 32px;
+  animation: fadeInUp 0.6s ease 0.2s backwards;
+}
+
+.modeCard {
+  position: relative;
+  padding: 36px 28px;
+  border-radius: 24px;
+  border: 2px solid #e5e7eb;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.modeCard:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+  border-color: #79aea3;
+}
+
+.modeCardHighlight {
+  border-color: #79aea3;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(121, 174, 163, 0.04) 100%);
+}
+
+.modeCardHighlight:hover {
+  border-color: #5a9d8f;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(121, 174, 163, 0.08) 100%);
+}
+
+.modeBadge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(121, 174, 163, 0.16), rgba(90, 157, 143, 0.22));
+  color: #356b60;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(121, 174, 163, 0.35);
+}
+
+.modeIcon {
+  font-size: 56px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.modeTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.modeDescription {
+  font-size: 15px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  min-height: 70px;
+}
+
+.modeFeatures {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.feature {
+  font-size: 14px;
+  color: #374151;
+  text-align: left;
+  padding: 8px 12px;
+  background-color: rgba(250, 241, 224, 0.3);
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.modeButton {
+  width: 100%;
+  padding: 14px 28px;
+  background: white;
+  color: #79aea3;
+  border: 2px solid #79aea3;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modeButton:hover {
+  background: #f9fafb;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(121, 174, 163, 0.25);
+}
+
+.modeButtonPrimary {
+  background: linear-gradient(135deg, #79aea3 0%, #5a9d8f 100%);
+  color: white;
+  border: none;
+}
+
+.modeButtonPrimary:hover {
+  background: linear-gradient(135deg, #5a9d8f 0%, #4a8d7f 100%);
+  box-shadow: 0 6px 18px rgba(121, 174, 163, 0.35);
+}
+
+.footerNote {
+  font-size: 14px;
+  color: #9ca3af;
+  text-align: center;
+  font-weight: 500;
+  animation: fadeIn 0.6s ease 0.4s backwards;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 26px;
+  }
+
+  .subtitle {
+    font-size: 16px;
+  }
+
+  .modesContainer {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .modeCard {
+    padding: 32px 24px;
+  }
+
+  .modeIcon {
+    font-size: 48px;
+  }
+
+  .modeTitle {
+    font-size: 20px;
+  }
+
+  .modeDescription {
+    font-size: 14px;
+    min-height: auto;
+  }
+}

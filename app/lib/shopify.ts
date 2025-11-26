@@ -341,10 +341,10 @@ function cleanHtmlDescription(html: string): string {
  */
 function getFallbackProducts(): ProductsData {
   secureLog.warn('Using fallback products');
-  
+
   const fallbackProducts: Product[] = [
     {
-      id: 'zero-plus-dream',
+      id: 'letto-montessori-casetta-baldacchino-zeropiu',
       url: 'https://nabecreation.com/products/letto-montessori-casetta-baldacchino-zeropiu',
       name: 'Letto Montessori zero+ Dream',
       price: 'da €590',
@@ -355,13 +355,123 @@ function getFallbackProducts(): ProductsData {
       lastUpdated: new Date()
     },
     {
-      id: 'sponde-protettive',
+      id: 'letto-zeropiu-earth-con-kit-piedini-omaggio',
+      url: 'https://nabecreation.com/products/letto-zeropiu-earth-con-kit-piedini-omaggio',
+      name: 'Letto zero+ Earth',
+      price: 'da €490',
+      description: 'Design essenziale e minimalista, cresce con i bambini da 0 a 12 anni.',
+      images: [],
+      category: 'Letti Evolutivi',
+      inStock: true,
+      lastUpdated: new Date()
+    },
+    {
+      id: 'letto-evolutivo-fun',
+      url: 'https://nabecreation.com/products/letto-evolutivo-fun',
+      name: 'Letto montessori evolutivo zero+ Fun',
+      price: 'da €620',
+      description: 'Testiera contenitore per autonomia e ordine, perfetto per bambini dai 2 anni.',
+      images: [],
+      category: 'Letti Evolutivi',
+      inStock: true,
+      lastUpdated: new Date()
+    },
+    {
+      id: 'letto-a-castello-zero-duo-con-kit-piedini-omaggio',
+      url: 'https://nabecreation.com/products/letto-a-castello-zero-duo-con-kit-piedini-omaggio',
+      name: 'Letto a castello zero+ Duo',
+      price: 'da €1,290',
+      description: 'Soluzione a castello evolutiva per fratelli e sorelle di tutte le età.',
+      images: [],
+      category: 'Letti Evolutivi',
+      inStock: true,
+      lastUpdated: new Date()
+    },
+    {
+      id: 'letto-evolutivo-zero-family-con-kit-piedini-omaggio',
+      url: 'https://nabecreation.com/products/letto-evolutivo-zero-family-con-kit-piedini-omaggio',
+      name: 'Letto a due piazze zero+ Family',
+      price: 'da €790',
+      description: 'Due piazze per co-sleeping e comfort familiare.',
+      images: [],
+      category: 'Letti Evolutivi',
+      inStock: true,
+      lastUpdated: new Date()
+    },
+    {
+      id: 'letto-a-soppalco-evolutivo-zero-uppy',
+      url: 'https://nabecreation.com/products/letto-a-soppalco-evolutivo-zero-uppy',
+      name: 'Letto a soppalco evolutivo zero+ Uppy',
+      price: 'da €890',
+      description: 'Letto a soppalco che cresce con il bambino, ideale per massimizzare lo spazio.',
+      images: [],
+      category: 'Letti Evolutivi',
+      inStock: true,
+      lastUpdated: new Date()
+    },
+    {
+      id: 'letto-a-soppalco-mezza-altezza-evolutivo-zero-up',
+      url: 'https://nabecreation.com/products/letto-a-soppalco-mezza-altezza-evolutivo-zero-up',
+      name: 'Letto a soppalco mezza altezza zero+ Up',
+      price: 'da €790',
+      description: 'Soppalco mezza altezza per liberare spazio gioco sotto il letto.',
+      images: [],
+      category: 'Letti Evolutivi',
+      inStock: true,
+      lastUpdated: new Date()
+    },
+    {
+      id: 'sponde-protettive-per-letto-zeropiu',
       url: 'https://nabecreation.com/products/sponde-protettive-per-letto-zeropiu',
       name: 'Sponde Protettive zero+',
       price: 'da €120',
       description: 'Sponde modulari per letto Montessori, sicurezza e comfort per i più piccoli.',
       images: [],
       category: 'Accessori',
+      inStock: true,
+      lastUpdated: new Date()
+    },
+    {
+      id: 'riduttore-evolutivo-zeropiu',
+      url: 'https://nabecreation.com/products/riduttore-evolutivo-zeropiu',
+      name: 'Paracolpi-Riduttore evolutivo zero+',
+      price: 'da €89',
+      description: 'Il primo paracolpi per letti montessoriani che segue la crescita dei bambini.',
+      images: [],
+      category: 'Accessori',
+      inStock: true,
+      lastUpdated: new Date()
+    },
+    {
+      id: 'letto-contenitore-estraibile-zeropiu',
+      url: 'https://nabecreation.com/products/letto-contenitore-estraibile-zeropiu',
+      name: 'Cassettone estraibile zero+',
+      price: 'da €390',
+      description: 'Secondo letto o grande contenitore salvaspazio, perfetto sotto i letti evolutivi.',
+      images: [],
+      category: 'Accessori',
+      inStock: true,
+      lastUpdated: new Date()
+    },
+    {
+      id: 'materasso-evolutivo-zeropiu',
+      url: 'https://nabecreation.com/products/materasso-evolutivo-zeropiu',
+      name: 'Materasso evolutivo zero+',
+      price: 'da €290',
+      description: 'Schiume ecologiche a zone per ogni fase di crescita del bambino.',
+      images: [],
+      category: 'Comfort',
+      inStock: true,
+      lastUpdated: new Date()
+    },
+    {
+      id: 'torre-montessoriana-mia',
+      url: 'https://nabecreation.com/products/torre-montessoriana-mia',
+      name: 'Torre montessoriana Mia',
+      price: 'da €169',
+      description: 'Learning tower evolutiva in legno massello, da torre a scaletta o sediolina.',
+      images: [],
+      category: 'Complementi',
       inStock: true,
       lastUpdated: new Date()
     }
